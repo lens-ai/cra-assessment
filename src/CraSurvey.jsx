@@ -455,17 +455,47 @@ export default function App(){
   };
 
   /* PDF Download handler */
-  const downloadPDF = async () => {
-    if (!resultsRef.current) return;
+  const downloadPDF = async (e) => {
+    if (!resultsRef.current) {
+      alert('Report not ready. Please wait a moment and try again.');
+      return;
+    }
+
+    const button = e.target;
+    const originalText = button.textContent;
 
     try {
+      // Show generating message
+      button.textContent = 'Generating PDF...';
+      button.disabled = true;
+
+      // Wait for fonts and animations to complete
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
       // Capture the results HTML as canvas
       const canvas = await html2canvas(resultsRef.current, {
-        scale: 2, // Higher quality
+        scale: 2,
         useCORS: true,
-        logging: false,
-        backgroundColor: '#f5f6f8'
+        logging: true,
+        backgroundColor: '#f5f6f8',
+        windowWidth: resultsRef.current.scrollWidth,
+        windowHeight: resultsRef.current.scrollHeight,
+        onclone: (clonedDoc) => {
+          // Ensure all animations are visible in clone
+          const clonedElement = clonedDoc.querySelector('[data-results]');
+          if (clonedElement) {
+            clonedElement.querySelectorAll('[style*="animation"]').forEach(el => {
+              el.style.animation = 'none';
+              el.style.opacity = '1';
+              el.style.transform = 'none';
+            });
+          }
+        }
       });
+
+      if (canvas.width === 0 || canvas.height === 0) {
+        throw new Error('Canvas is empty - content may not be rendered');
+      }
 
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
@@ -497,9 +527,15 @@ export default function App(){
       const filename = `CRA_Assessment_${lead.company || 'Report'}_${new Date().toISOString().split('T')[0]}.pdf`;
       pdf.save(filename);
 
+      // Restore button
+      button.textContent = originalText;
+      button.disabled = false;
+
     } catch (error) {
       console.error('PDF generation failed:', error);
-      alert('Failed to generate PDF. Please try again.');
+      alert(`Failed to generate PDF: ${error.message}. Check console for details.`);
+      button.textContent = originalText;
+      button.disabled = false;
     }
   };
 
@@ -880,7 +916,7 @@ export default function App(){
 
     return <div style={{minHeight:"100vh",background:C.bg,fontFamily:ff}}>
       <style>{cssOnce}</style>
-      <div ref={resultsRef} style={{maxWidth:920,margin:"0 auto",padding:"48px 28px"}}>
+      <div ref={resultsRef} data-results style={{maxWidth:920,margin:"0 auto",padding:"48px 28px"}}>
 
         <Appear><div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:28}}>
           <div>
