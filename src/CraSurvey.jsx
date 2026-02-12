@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import emailjs from '@emailjs/browser';
 import { saveAssessment, loadAssessment, isFirebaseConfigured } from './firebase';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 /* ═══════════════════════════════════════════════════════
    DESIGN SYSTEM
@@ -291,6 +293,7 @@ export default function App(){
   const [assessmentId,setAssessmentId]=useState(null); // Saved assessment ID for sharing
   const [loadingShared,setLoadingShared]=useState(false); // Loading shared report
   const [sendToClient,setSendToClient]=useState(true); // Send results to client email
+  const resultsRef = useRef(null); // Ref for PDF generation
 
   const qs=useMemo(()=>sector&&pt?buildQuestions(sector,pt):[],[sector,pt]);
   const nav=(fn,d=1)=>{setDir(d);setKey(k=>k+1);fn()};
@@ -448,6 +451,55 @@ export default function App(){
       console.error('Email send error:', error);
       console.error('Error details:', error.text || error.message);
       setSubmitStatus({loading:false,success:false,error:error.text || error.message || 'Failed to send. Please try again.'});
+    }
+  };
+
+  /* PDF Download handler */
+  const downloadPDF = async () => {
+    if (!resultsRef.current) return;
+
+    try {
+      // Capture the results HTML as canvas
+      const canvas = await html2canvas(resultsRef.current, {
+        scale: 2, // Higher quality
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#f5f6f8'
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      // Calculate dimensions to fit A4
+      const imgWidth = 210; // A4 width in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      // Add first page
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= 297; // A4 height in mm
+
+      // Add additional pages if needed
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= 297;
+      }
+
+      // Generate filename
+      const filename = `CRA_Assessment_${lead.company || 'Report'}_${new Date().toISOString().split('T')[0]}.pdf`;
+      pdf.save(filename);
+
+    } catch (error) {
+      console.error('PDF generation failed:', error);
+      alert('Failed to generate PDF. Please try again.');
     }
   };
 
@@ -828,7 +880,7 @@ export default function App(){
 
     return <div style={{minHeight:"100vh",background:C.bg,fontFamily:ff}}>
       <style>{cssOnce}</style>
-      <div style={{maxWidth:920,margin:"0 auto",padding:"48px 28px"}}>
+      <div ref={resultsRef} style={{maxWidth:920,margin:"0 auto",padding:"48px 28px"}}>
 
         <Appear><div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:28}}>
           <div>
@@ -993,7 +1045,7 @@ export default function App(){
           </p>
           <div style={{display:"flex",justifyContent:"center",gap:8}}>
             <button style={{fontFamily:ff,fontSize:13,fontWeight:600,background:C.primary,color:"#fff",border:"none",borderRadius:8,padding:"11px 24px",cursor:"pointer",boxShadow:"0 2px 12px rgba(61,90,241,.3)"}}>Schedule a walkthrough</button>
-            <button style={{fontFamily:ff,fontSize:13,fontWeight:600,background:"rgba(255,255,255,.1)",color:"#c8d4e8",border:`1px solid rgba(255,255,255,.15)`,borderRadius:8,padding:"11px 20px",cursor:"pointer"}}>Download report</button>
+            <button onClick={downloadPDF} style={{fontFamily:ff,fontSize:13,fontWeight:600,background:"rgba(255,255,255,.1)",color:"#c8d4e8",border:`1px solid rgba(255,255,255,.15)`,borderRadius:8,padding:"11px 20px",cursor:"pointer"}}>Download report</button>
           </div>
         </Card></Appear>
 
