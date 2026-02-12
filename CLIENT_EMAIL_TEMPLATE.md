@@ -92,10 +92,14 @@ Your CRA Compliance Assessment Results - {{overall_score}}% Ready
       </table>
     </div>
 
-    <!-- CTA Button -->
+    <!-- CTA Buttons -->
     <div style="text-align: center; margin: 32px 0;">
-      <a href="{{report_link}}" style="display: inline-block; background: #3d5af1; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 15px; box-shadow: 0 4px 12px rgba(61, 90, 241, 0.25);">
+      <a href="{{report_link}}" style="display: inline-block; background: #3d5af1; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 15px; box-shadow: 0 4px 12px rgba(61, 90, 241, 0.25); margin: 0 4px 8px 4px;">
         View Full Report →
+      </a>
+      <br>
+      <a href="https://calendly.com/venkata-complira/30min" style="display: inline-block; background: #ffffff; color: #3d5af1; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 15px; border: 2px solid #3d5af1; margin: 0 4px 8px 4px;">
+        Schedule a Walkthrough
       </a>
     </div>
 

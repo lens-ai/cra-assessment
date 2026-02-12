@@ -1044,7 +1044,7 @@ export default function App(){
             Complira scans your repos, generates Annex I-traceable documentation, and maintains SBOMs through the support period.
           </p>
           <div style={{display:"flex",justifyContent:"center",gap:8}}>
-            <button style={{fontFamily:ff,fontSize:13,fontWeight:600,background:C.primary,color:"#fff",border:"none",borderRadius:8,padding:"11px 24px",cursor:"pointer",boxShadow:"0 2px 12px rgba(61,90,241,.3)"}}>Schedule a walkthrough</button>
+            <a href="https://calendly.com/venkata-complira/30min" target="_blank" rel="noopener noreferrer" style={{fontFamily:ff,fontSize:13,fontWeight:600,background:C.primary,color:"#fff",border:"none",borderRadius:8,padding:"11px 24px",cursor:"pointer",boxShadow:"0 2px 12px rgba(61,90,241,.3)",textDecoration:"none",display:"inline-block"}}>Schedule a walkthrough</a>
             <button onClick={downloadPDF} style={{fontFamily:ff,fontSize:13,fontWeight:600,background:"rgba(255,255,255,.1)",color:"#c8d4e8",border:`1px solid rgba(255,255,255,.15)`,borderRadius:8,padding:"11px 20px",cursor:"pointer"}}>Download report</button>
           </div>
         </Card></Appear>
