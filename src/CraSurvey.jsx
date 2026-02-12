@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
+import emailjs from '@emailjs/browser';
 
 /* ═══════════════════════════════════════════════════════
    DESIGN SYSTEM
@@ -285,9 +286,61 @@ export default function App(){
   const [lead,setLead]=useState({name:"",email:"",company:"",role:"",device:""});
   const [dir,setDir]=useState(1); // 1=forward,-1=back
   const [key,setKey]=useState(0); // force re-render for transition
+  const [submitStatus,setSubmitStatus]=useState({loading:false,success:false,error:null});
 
   const qs=useMemo(()=>sector&&pt?buildQuestions(sector,pt):[],[sector,pt]);
   const nav=(fn,d=1)=>{setDir(d);setKey(k=>k+1);fn()};
+
+  /* Email submission handler */
+  const handleLeadSubmit = async () => {
+    setSubmitStatus({loading:true,success:false,error:null});
+
+    try {
+      // EmailJS configuration from environment variables
+      const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID || 'service_21y3wlh';
+      const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 'template_cra_lead';
+      const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || '';
+
+      if (!publicKey) {
+        throw new Error('EmailJS public key not configured');
+      }
+
+      // Calculate scores for email
+      const scored = qs.filter(q=>mainAns[q.id]&&mainAns[q.id]>0);
+      const qS = {};
+      scored.forEach(q=>{
+        const m=mainAns[q.id],rs=q.subs.filter(x=>subAns[x.id]&&subAns[x.id]>0),na=q.subs.filter(x=>subAns[x.id]===0).length,app=q.subs.length-na;
+        if(rs.length>=3){const a=rs.reduce((s,x)=>s+subAns[x.id],0)/rs.length;qS[q.id]=Math.round(((m*.25+a*.75)/5)*100)}
+        else if(rs.length>0){const a=rs.reduce((s,x)=>s+subAns[x.id],0)/rs.length;qS[q.id]=Math.round(((m*.4+a*.6)/5)*100)}
+        else{qS[q.id]=Math.round((m/5)*100)}
+      });
+      const overall=scored.length?Math.round(scored.reduce((a,q)=>a+qS[q.id],0)/scored.length):0;
+
+      // Prepare email data
+      const emailData = {
+        to_email: 'venkata@complira.co',
+        from_name: lead.name,
+        from_email: lead.email,
+        company: lead.company,
+        role: lead.role || 'Not provided',
+        device: lead.device || 'Not provided',
+        sector: SECTORS.find(s=>s.id===sector)?.label || 'Not specified',
+        product_type: PTYPES.find(p=>p.id===pt)?.label || 'Not specified',
+        overall_score: overall,
+        questions_answered: `${scored.length}/${qs.length}`,
+        assessment_date: new Date().toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'}),
+        report_link: window.location.href
+      };
+
+      await emailjs.send(serviceId, templateId, emailData, publicKey);
+
+      setSubmitStatus({loading:false,success:true,error:null});
+      setTimeout(()=>setStep("results"),1500);
+    } catch (error) {
+      console.error('Email send error:', error);
+      setSubmitStatus({loading:false,success:false,error:error.message||'Failed to send. Please try again.'});
+    }
+  };
 
   /* Rating scale */
   function Scale({value,onChange}){
@@ -527,9 +580,20 @@ export default function App(){
                 onFocus={e=>{e.target.style.borderColor=C.primary}} onBlur={e=>{e.target.style.borderColor=C.soft}}/>
             </div>)}
           <p style={{fontSize:10,color:C.mute,margin:"14px 0"}}>Used solely to deliver your report. No data sharing.</p>
-          <button style={{fontFamily:ff,width:"100%",fontSize:14,fontWeight:600,background:C.primary,color:"#fff",border:"none",borderRadius:8,padding:"11px 0",cursor:lead.name&&lead.email&&lead.company?"pointer":"default",opacity:lead.name&&lead.email&&lead.company?1:.4,transition:"all .15s"}}
-            disabled={!lead.name||!lead.email||!lead.company}
-            onClick={()=>{setStep("results")}}>View report</button>
+
+          {submitStatus.error && <div style={{padding:"10px 14px",background:C.errSoft,border:`1px solid ${C.errBd}`,borderRadius:8,marginBottom:12}}>
+            <span style={{fontSize:12,color:C.err,lineHeight:1.5}}>{submitStatus.error}</span>
+          </div>}
+
+          {submitStatus.success && <div style={{padding:"10px 14px",background:C.okSoft,border:`1px solid ${C.okBd}`,borderRadius:8,marginBottom:12,animation:"fadeIn .3s ease"}}>
+            <span style={{fontSize:12,color:C.ok,lineHeight:1.5}}>✓ Email sent! Redirecting to results...</span>
+          </div>}
+
+          <button style={{fontFamily:ff,width:"100%",fontSize:14,fontWeight:600,background:submitStatus.loading?C.mute:C.primary,color:"#fff",border:"none",borderRadius:8,padding:"11px 0",cursor:(lead.name&&lead.email&&lead.company&&!submitStatus.loading)?"pointer":"default",opacity:(lead.name&&lead.email&&lead.company&&!submitStatus.loading)?1:.4,transition:"all .15s"}}
+            disabled={!lead.name||!lead.email||!lead.company||submitStatus.loading}
+            onClick={handleLeadSubmit}>
+            {submitStatus.loading?"Sending...":"View report"}
+          </button>
           <div style={{textAlign:"center",marginTop:8}}>
             <button style={{fontFamily:ff,background:"none",border:"none",color:C.mute,fontSize:11,cursor:"pointer",padding:4}} onClick={()=>setStep("results")}>Skip for now</button>
           </div>
