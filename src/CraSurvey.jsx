@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import emailjs from '@emailjs/browser';
+import { saveAssessment, loadAssessment, isFirebaseConfigured } from './firebase';
 
 /* ═══════════════════════════════════════════════════════
    DESIGN SYSTEM
@@ -287,9 +288,40 @@ export default function App(){
   const [dir,setDir]=useState(1); // 1=forward,-1=back
   const [key,setKey]=useState(0); // force re-render for transition
   const [submitStatus,setSubmitStatus]=useState({loading:false,success:false,error:null});
+  const [assessmentId,setAssessmentId]=useState(null); // Saved assessment ID for sharing
+  const [loadingShared,setLoadingShared]=useState(false); // Loading shared report
 
   const qs=useMemo(()=>sector&&pt?buildQuestions(sector,pt):[],[sector,pt]);
   const nav=(fn,d=1)=>{setDir(d);setKey(k=>k+1);fn()};
+
+  /* Load shared assessment from URL parameter */
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const reportId = urlParams.get('report');
+
+    if (reportId && !loadingShared && !assessmentId) {
+      setLoadingShared(true);
+      loadAssessment(reportId)
+        .then(data => {
+          // Restore all state from saved assessment
+          setSector(data.config.sector);
+          setPt(data.config.productType);
+          setMainAns(data.answers.mainAns);
+          setSubAns(data.answers.subAns);
+          setNotes(data.answers.notes || {});
+          setLead(data.lead);
+          setAssessmentId(reportId);
+          setStep('results');
+          setLoadingShared(false);
+        })
+        .catch(error => {
+          console.error('Failed to load shared assessment:', error);
+          setLoadingShared(false);
+          alert('Unable to load shared report. The link may be invalid or expired.');
+        });
+    }
+  }, []);
+
 
   /* Email submission handler */
   const handleLeadSubmit = async () => {
@@ -316,6 +348,54 @@ export default function App(){
       });
       const overall=scored.length?Math.round(scored.reduce((a,q)=>a+qS[q.id],0)/scored.length):0;
 
+      // Save assessment to Firebase (if configured)
+      let reportLink = window.location.origin + window.location.pathname;
+      let savedId = assessmentId;
+
+      if (isFirebaseConfigured() && !assessmentId) {
+        try {
+          const assessmentData = {
+            lead: {
+              name: lead.name,
+              email: lead.email,
+              company: lead.company,
+              role: lead.role,
+              device: lead.device,
+            },
+            config: {
+              sector,
+              productType: pt,
+            },
+            answers: {
+              mainAns,
+              subAns,
+              notes,
+            },
+            scores: {
+              overall,
+              questions: qS,
+              questionsAnswered: scored.length,
+              totalQuestions: qs.length,
+            },
+            metadata: {
+              sectorLabel: SECTORS.find(s=>s.id===sector)?.label,
+              productTypeLabel: PTYPES.find(p=>p.id===pt)?.label,
+              submittedAt: new Date().toISOString(),
+            },
+          };
+
+          savedId = await saveAssessment(assessmentData);
+          setAssessmentId(savedId);
+          reportLink = `${window.location.origin}${window.location.pathname}?report=${savedId}`;
+        } catch (firebaseError) {
+          console.warn('Firebase save failed, using current URL:', firebaseError);
+          // Continue with email send even if Firebase fails
+        }
+      } else if (savedId) {
+        // Use existing saved ID
+        reportLink = `${window.location.origin}${window.location.pathname}?report=${savedId}`;
+      }
+
       // Prepare email data
       const emailData = {
         to_email: 'venkata@complira.co',
@@ -329,7 +409,7 @@ export default function App(){
         overall_score: overall,
         questions_answered: `${scored.length}/${qs.length}`,
         assessment_date: new Date().toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'}),
-        report_link: window.location.href
+        report_link: reportLink
       };
 
       await emailjs.send(serviceId, templateId, emailData, publicKey);
