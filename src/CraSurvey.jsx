@@ -290,6 +290,7 @@ export default function App(){
   const [submitStatus,setSubmitStatus]=useState({loading:false,success:false,error:null});
   const [assessmentId,setAssessmentId]=useState(null); // Saved assessment ID for sharing
   const [loadingShared,setLoadingShared]=useState(false); // Loading shared report
+  const [sendToClient,setSendToClient]=useState(true); // Send results to client email
 
   const qs=useMemo(()=>sector&&pt?buildQuestions(sector,pt):[],[sector,pt]);
   const nav=(fn,d=1)=>{setDir(d);setKey(k=>k+1);fn()};
@@ -396,8 +397,8 @@ export default function App(){
         reportLink = `${window.location.origin}${window.location.pathname}?report=${savedId}`;
       }
 
-      // Prepare email data
-      const emailData = {
+      // Send lead notification email to admin
+      const leadEmailData = {
         to_email: 'venkata@complira.co',
         from_name: lead.name,
         from_email: lead.email,
@@ -412,13 +413,41 @@ export default function App(){
         report_link: reportLink
       };
 
-      await emailjs.send(serviceId, templateId, emailData, publicKey);
+      // Send client results email (if enabled)
+      const clientTemplateId = import.meta.env.VITE_EMAILJS_CLIENT_TEMPLATE_ID || 'template_client_results';
+
+      // Always send admin notification first
+      await emailjs.send(serviceId, templateId, leadEmailData, publicKey);
+
+      // Send client email if enabled and template is configured
+      if (sendToClient && clientTemplateId) {
+        try {
+          const clientEmailData = {
+            to_email: lead.email,
+            to_name: lead.name,
+            company: lead.company,
+            sector: SECTORS.find(s=>s.id===sector)?.label || 'Not specified',
+            product_type: PTYPES.find(p=>p.id===pt)?.label || 'Not specified',
+            overall_score: overall,
+            questions_answered: `${scored.length}/${qs.length}`,
+            assessment_date: new Date().toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'}),
+            report_link: reportLink
+          };
+
+          await emailjs.send(serviceId, clientTemplateId, clientEmailData, publicKey);
+          console.log('Client email sent successfully');
+        } catch (clientError) {
+          console.warn('Client email failed, but admin email sent:', clientError);
+          // Don't fail the whole submission if client email fails
+        }
+      }
 
       setSubmitStatus({loading:false,success:true,error:null});
       setTimeout(()=>setStep("results"),1500);
     } catch (error) {
       console.error('Email send error:', error);
-      setSubmitStatus({loading:false,success:false,error:error.message||'Failed to send. Please try again.'});
+      console.error('Error details:', error.text || error.message);
+      setSubmitStatus({loading:false,success:false,error:error.text || error.message || 'Failed to send. Please try again.'});
     }
   };
 
@@ -660,6 +689,17 @@ export default function App(){
                 onFocus={e=>{e.target.style.borderColor=C.primary}} onBlur={e=>{e.target.style.borderColor=C.soft}}/>
             </div>)}
           <p style={{fontSize:10,color:C.mute,margin:"14px 0"}}>Used solely to deliver your report. No data sharing.</p>
+
+          <label style={{display:"flex",alignItems:"center",gap:8,padding:"12px 14px",background:C.primarySoft,border:`1.5px solid ${C.primary}30`,borderRadius:8,marginBottom:16,cursor:"pointer",transition:"all .15s"}}
+            onMouseEnter={e=>{e.currentTarget.style.background=C.primaryGhost}}
+            onMouseLeave={e=>{e.currentTarget.style.background=C.primarySoft}}>
+            <input type="checkbox" checked={sendToClient} onChange={e=>setSendToClient(e.target.checked)}
+              style={{width:16,height:16,cursor:"pointer",accentColor:C.primary}}/>
+            <div style={{flex:1}}>
+              <div style={{fontSize:12,fontWeight:600,color:C.primary,marginBottom:2}}>📧 Email me a copy of my results</div>
+              <div style={{fontSize:10,color:C.sub,lineHeight:1.4}}>Receive your complete CRA compliance report with detailed breakdown and actionable recommendations</div>
+            </div>
+          </label>
 
           {submitStatus.error && <div style={{padding:"10px 14px",background:C.errSoft,border:`1px solid ${C.errBd}`,borderRadius:8,marginBottom:12}}>
             <span style={{fontSize:12,color:C.err,lineHeight:1.5}}>{submitStatus.error}</span>
