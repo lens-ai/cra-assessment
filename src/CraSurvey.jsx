@@ -42,11 +42,20 @@ const SEC = {
   E: { label: "Documentation", accent: "#64748b", soft: "#f1f5f9" },
 };
 
+const SECTORS = [
+  { id: "generic", label: "General / Cross-Sector", desc: "Universal compliance — applicable to any digital product with essential functionality", icon: "⬡", color: "#64748b" },
+  { id: "healthcare", label: "Healthcare / MedTech", desc: "Medical devices, diagnostics, clinical systems, health IT", icon: "⚕", color: "#dc2626" },
+  { id: "iot", label: "IoT / Consumer Electronics", desc: "Smart home, wearables, connected devices, consumer hardware", icon: "◈", color: "#2563eb" },
+  { id: "industrial", label: "Industrial / ICS", desc: "SCADA, PLCs, industrial automation, critical infrastructure", icon: "⚙", color: "#ca8a04" },
+  { id: "automotive", label: "Automotive / Mobility", desc: "Connected vehicles, V2X, infotainment, ADAS, charging infrastructure", icon: "◐", color: "#16a34a" },
+  { id: "financial", label: "Financial / FinTech", desc: "Payment systems, banking software, crypto wallets, trading platforms", icon: "◆", color: "#9333ea" },
+];
+
 const PTYPES = [
-  { id: "samd", label: "Pure Software (SaMD)", desc: "Software as Medical Device, diagnostics, clinical decision support", icon: "◇" },
-  { id: "embedded", label: "Embedded / Firmware", desc: "Hardware with embedded software — pumps, monitors, imaging", icon: "▣" },
-  { id: "cloud", label: "Cloud / SaaS", desc: "Cloud-hosted platforms, telehealth, PACS, remote monitoring", icon: "◎" },
-  { id: "hybrid", label: "Multi-Component", desc: "Connected ecosystem — firmware, cloud, mobile, ML pipelines", icon: "⬡" },
+  { id: "samd", label: "Pure Software (SaMD)", desc: "Standalone software application", icon: "◇" },
+  { id: "embedded", label: "Embedded / Firmware", desc: "Hardware with embedded software", icon: "▣" },
+  { id: "cloud", label: "Cloud / SaaS", desc: "Cloud-hosted platform or service", icon: "◎" },
+  { id: "hybrid", label: "Multi-Component", desc: "Connected ecosystem with multiple components", icon: "⬡" },
 ];
 
 const LEVELS = [
@@ -60,20 +69,56 @@ const LEVELS = [
 
 /* ═══════════════════════════════════════════════════════
    QUESTION BANK — 22 questions, ~130 sub-criteria
+   Dynamically adapted based on sector + product type
    ═══════════════════════════════════════════════════════ */
-function buildQuestions(pt) {
+function buildQuestions(sector, pt) {
   const is = t => pt === t || pt === "hybrid";
+  const isSector = s => sector === s;
+
+  // Sector-specific context generator
+  const getContext = (generic, sectorMap) => {
+    if (isSector("generic")) return generic;
+    return sectorMap[sector] || generic;
+  };
+
   return [
     { id:"a1",section:"A",sectionTitle:"Risk & Design Governance",title:"Cybersecurity Risk Assessment",body:"How mature is your process for assessing cybersecurity risks across the product lifecycle?",ref:"Annex I §(1) · Art. 13(2)",
-      ctx:is("embedded")?"Firmware must assess physical vectors (side-channel, fault injection) alongside software threats.":is("cloud")?"Cloud must assess multi-tenancy isolation, shared responsibility gaps, and data residency risks.":is("samd")?"SaMD should cover algorithmic risks, training data integrity, and deployment variability.":"Multi-component systems require assessment at both component and integration levels.",
+      ctx: getContext(
+        is("embedded")?"Physical and software threats must be systematically identified and assessed.":is("cloud")?"Cloud environments require assessment of service isolation, provider dependencies, and data residency.":"Risk assessment must cover your product's full attack surface and operational context.",
+        {
+          healthcare: is("embedded")?"Medical firmware must assess physical vectors (side-channel, fault injection), physiological impact, and safety-security tradeoffs.":is("cloud")?"Assess multi-tenancy isolation, ePHI protection, clinical workflow disruption, and provider compromise scenarios.":"Clinical decision support requires assessing algorithmic risks, training data integrity, and deployment environment variability.",
+          iot: is("embedded")?"Consumer devices must assess physical access scenarios, factory reset attacks, and local network compromise.":"Smart devices require assessment of privacy invasion, physical safety (locks, cameras), and botnet recruitment risks.",
+          industrial: is("embedded")?"ICS/SCADA must assess operational technology threats, safety system bypass, and process integrity attacks.":"Critical infrastructure requires assessment of catastrophic failure scenarios, cascading impacts, and nation-state threats.",
+          automotive: is("embedded")?"Vehicle systems must assess CAN bus attacks, physical tampering, safety-critical function compromise.":"Connected vehicles require assessment of V2X threats, remote control scenarios, and crash-inducing attacks.",
+          financial: is("embedded")?"Payment hardware must assess physical tampering, side-channel attacks on cryptographic operations.":"Financial systems require assessment of transaction integrity, fund theft scenarios, and regulatory compliance gaps."
+        }
+      ),
       subs:[{id:"a1_s1",text:"A documented cybersecurity risk assessment methodology exists and is followed"},{id:"a1_s2",text:"Risk assessment performed before initial release and updated at each lifecycle phase"},{id:"a1_s3",text:"Identified risks are scored, prioritized, and linked to mitigations"},{id:"a1_s4",text:"Residual risks documented with justification for acceptance"},
-        ...(is("embedded")?[{id:"a1_s5",text:"Physical and hardware-level vectors (glitching, side-channel, bus probing) included"}]:is("cloud")?[{id:"a1_s5",text:"Cloud-specific risks (tenant isolation, provider compromise, region failover) assessed"}]:[{id:"a1_s5",text:"Deployment environment variability across clinical sites factored in"}])]},
+        ...(is("embedded")?[{id:"a1_s5",text:"Physical and hardware-level vectors (glitching, side-channel, bus probing) included"}]:is("cloud")?[{id:"a1_s5",text:"Cloud-specific risks (tenant isolation, provider compromise, region failover) assessed"}]:[{id:"a1_s5",text:"Deployment environment variability factored into risk analysis"}])]},
     { id:"a2",section:"A",title:"Threat Modeling & Attack Surface",body:"Do you perform systematic threat modeling tied to your architecture, with results feeding into security requirements?",ref:"Annex I §(2)(j-k) · Art. 13(2)",
-      ctx:is("embedded")?"Model threats against JTAG, SWD, UART, firmware extraction, bootloader attacks.":is("cloud")?"Include API abuse, container escape, service mesh compromise, management plane exfiltration.":is("samd")?"Cover ML model integrity (adversarial inputs, data poisoning, model extraction).":"Map trust boundaries between every component pair and model lateral movement.",
+      ctx: getContext(
+        is("embedded")?"Model threats against debug interfaces, firmware extraction, and bootloader attacks.":is("cloud")?"Include API abuse, container escape, and management plane compromise.":"Map trust boundaries and model attack paths through all interfaces.",
+        {
+          healthcare: is("embedded")?"Medical devices: model JTAG/SWD attacks, drug library tampering, alarm suppression, infusion rate manipulation.":is("cloud")?"Healthcare cloud: model ePHI exfiltration, clinical workflow disruption, EHR integration attacks, FHIR API abuse.":"Model clinical impact scenarios: diagnosis manipulation, false alerts, therapy interruption.",
+          iot: is("embedded")?"Consumer IoT: model local network attacks, device takeover, privacy invasion (cameras/mics), physical safety (locks/thermostats).":"Smart home: model hub compromise, cloud disconnect scenarios, voice assistant abuse, automation manipulation.",
+          industrial: is("embedded")?"ICS/SCADA: model Modbus/DNP3 attacks, PLC logic injection, HMI manipulation, safety system bypass.":"Industrial: model process disruption, setpoint manipulation, sensor spoofing, cascading failures to physical plant.",
+          automotive: is("embedded")?"Vehicle systems: model CAN bus injection, ECU spoofing, infotainment-to-CAN bridging, OBD port attacks.":"Connected vehicle: model V2X message spoofing, remote control scenarios, fleet management compromise, charging station attacks.",
+          financial: is("embedded")?"Payment terminals: model side-channel attacks on PIN entry, card skimming, firmware tampering.":"FinTech: model transaction manipulation, account takeover, fund exfiltration, regulatory reporting tampering."
+        }
+      ),
       subs:[{id:"a2_s1",text:"A recognized methodology (STRIDE, PASTA, LINDDUN, attack trees) is applied"},{id:"a2_s2",text:"Threat models tied to architecture diagrams with trust boundaries and data flows"},{id:"a2_s3",text:"All external interfaces (network, physical, API, debug) enumerated"},{id:"a2_s4",text:"Findings result in traceable security requirements or design changes"},{id:"a2_s5",text:"Threat models updated when architecture changes or new intelligence emerges"},
         ...(is("embedded")?[{id:"a2_s6",text:"Physical interfaces (JTAG, SWD, UART, USB) assessed for unauthorized access"}]:is("cloud")?[{id:"a2_s6",text:"Cloud management APIs and CI/CD interfaces included in attack surface"}]:is("hybrid")?[{id:"a2_s6",text:"Inter-component channels modeled as separate trust boundaries"}]:[{id:"a2_s6",text:"Third-party integrations included in attack surface model"}])]},
     { id:"a3",section:"A",title:"Third-Party Due Diligence",body:"When integrating third-party components, do you assess their cybersecurity posture and maintain due diligence evidence?",ref:"Annex I Part II §(1) · Art. 13(5)",
-      ctx:is("embedded")?"Firmware supply chains include RTOSes, BSPs, HALs, binary blobs with opaque provenance.":is("cloud")?"Cloud dependencies span container images, OSS libraries, managed services, IaC modules.":"Evaluate OSS maintenance health, license compliance, vulnerability response track records.",
+      ctx: getContext(
+        is("embedded")?"Supply chains include RTOSes, BSPs, HALs, and binary components with varying transparency.":is("cloud")?"Cloud dependencies span container images, OSS libraries, managed services, and IaC modules.":"Evaluate component maintenance health, license compliance, and vulnerability response track records.",
+        {
+          healthcare: "Medical devices: FDA 524B requires SBOM + vulnerability management. CRA adds EU enforcement. Assess supplier MDR compliance.",
+          iot: "Consumer IoT: High OSS dependency, often with weak supplier vetting. Assess IoT-specific components (Zigbee stacks, voice SDKs).",
+          industrial: "ICS: Legacy components with minimal updates, proprietary protocols. Assess OT vendor security posture, not just IT.",
+          automotive: "Automotive: Tier supplier chains, ECU software stacks, AUTOSAR components. Assess functional safety + cybersecurity integration.",
+          financial: "FinTech: Payment SDKs, crypto libraries, KYC/AML services. Assess PCI-DSS compliance, SOC 2 attestations."
+        }
+      ),
       subs:[{id:"a3_s1",text:"Security assessment criteria exist for evaluating components before integration"},{id:"a3_s2",text:"Suppliers provide SBOMs or equivalent component transparency"},{id:"a3_s3",text:"Third-party versions tracked and monitored for new vulnerabilities"},{id:"a3_s4",text:"Due diligence evidence maintained for audit"},{id:"a3_s5",text:"Contracts include vulnerability notification and patching commitments"},{id:"a3_s6",text:"FOSS components assessed for maintenance health before adoption"},{id:"a3_s7",text:"FOSS license compliance tracked with no patching conflicts"},
         ...(is("embedded")?[{id:"a3_s8",text:"Binary blobs assessed despite lack of source access"}]:[{id:"a3_s8",text:"Transitive/indirect dependencies assessed, not just direct imports"}])]},
     { id:"a4",section:"A",title:"Secure Build Pipeline",body:"Is your build and production process secured against supply chain attacks?",ref:"Annex VII §2(c) · Art. 13(4)",
@@ -82,7 +127,16 @@ function buildQuestions(pt) {
         ...(is("embedded")?[{id:"a4_s7",text:"Firmware toolchains verified against known-good versions"}]:is("cloud")?[{id:"a4_s7",text:"Container images from trusted registries, scanned, rebuilt for updates"}]:[])]},
 
     { id:"b1",section:"B",sectionTitle:"Product Security Properties",title:"Vulnerability-Free Release",body:"Can you demonstrate your product ships without known exploitable vulnerabilities?",ref:"Annex I §(2)(a) · Art. 13(1)",
-      ctx:is("embedded")?"Firmware needs binary-level analysis beyond source-level SCA.":is("cloud")?"Containers, functions, IaC templates each need independent vulnerability gates.":"The CRA's most binary requirement: known exploitable vulns at release = non-compliant.",
+      ctx: getContext(
+        "The CRA's most binary requirement: known exploitable vulnerabilities at release = non-compliant. Attestation required.",
+        {
+          healthcare: is("embedded")?"FDA 524B + CRA both require vuln-free release. Binary-level firmware analysis beyond source SCA essential.":"Healthcare cloud must gate ePHI-touching deployments. Document HIPAA + CRA dual compliance.",
+          iot: "Consumer IoT frequently ships with known CVEs. CRA changes the game: no more 'update later' approach. Pre-release gates mandatory.",
+          industrial: "ICS often runs legacy components with unfixable CVEs. CRA requires risk acceptance documentation, not just ignoring them.",
+          automotive: "Vehicle software: functional safety + cybersecurity. ISO 21434 + CRA alignment. Long validation cycles demand early vuln prevention.",
+          financial: "Payment systems: PCI-DSS already requires vuln scanning. CRA adds exploitability assessment and formal attestation requirements."
+        }
+      ),
       subs:[{id:"b1_s1",text:"Automated scanning (SCA, SAST, container) runs on every build"},{id:"b1_s2",text:"Release gate blocks deployment on critical exploitable vulnerabilities"},{id:"b1_s3",text:"Exploitability assessed (EPSS, KEV), not just CVSS"},{id:"b1_s4",text:"Scan results preserved with timestamps and commit references"},{id:"b1_s5",text:"Formal attestation: no known exploitable vulns at release"},{id:"b1_s6",text:"False positives documented rather than silently suppressed"}]},
     { id:"b2",section:"B",title:"Secure-by-Default Configuration",body:"Is your product shipped hardened — no default credentials, minimal services, encryption on?",ref:"Annex I §(2)(b) · Art. 13(1)",
       ctx:is("embedded")?"Devices routinely ship with factory credentials and open debug ports. Each is a violation.":is("cloud")?"Default IAM policies, storage permissions, logging must be secure from first deploy.":"CRA requires both a secure default AND ability to reset to it.",
@@ -131,7 +185,16 @@ function buildQuestions(pt) {
       ctx:is("embedded")?"Longer remediation cycles — balance IEC 62304 with CRA timeliness.":is("cloud")?"Rapid patching but increased exposure velocity. Automated dep pipelines essential.":"Required for entire support period, not just initial release.",
       subs:[{id:"d2_s1",text:"New vulns identified through continuous automated monitoring"},{id:"d2_s2",text:"Each vuln analyzed for applicability, exploitability, impact"},{id:"d2_s3",text:"Remediation SLAs defined by severity"},{id:"d2_s4",text:"Security updates delivered without delay"},{id:"d2_s5",text:"Regular testing through support period"},{id:"d2_s6",text:"Vuln info shared with supply chain where relevant"},{id:"d2_s7",text:"Remediation decisions documented and traceable"}]},
     { id:"d3",section:"D",title:"Disclosure & ENISA Reporting",body:"Have you published a CVD policy and prepared 24-hour ENISA notification capability?",ref:"Annex I Part II §(5-8) · Art. 14",
-      ctx:is("embedded")?"Align with both CRA ENISA and CISA ICS-CERT processes.":is("cloud")?"Pre-configure ENISA notification workflow for scale.":"24h early warning → 72h notification → 14d final report.",
+      ctx: getContext(
+        "First enforced CRA obligation (Sep 2026). 24h early warning → 72h notification → 14d final report. Pre-draft templates now.",
+        {
+          healthcare: "Medical devices: align CRA ENISA + CISA ICS-CERT + FDA reporting. Three parallel workflows. Pre-configure thresholds: clinical impact triggers all three.",
+          iot: "Consumer IoT: High vulnerability volume. Pre-configure triage to avoid false ENISA alarms. Botnet recruitment = reportable incident.",
+          industrial: "ICS/SCADA: Critical infrastructure directive overlaps. ENISA + national CERT + sector regulator. Pre-map escalation paths by asset criticality.",
+          automotive: "Automotive: CRA + UNECE R155 both require coordinated disclosure. Align ENISA reporting with type-approval authority notification.",
+          financial: "FinTech: CRA + DORA (Digital Operational Resilience Act) dual reporting. ENISA for product, national authority for operational incidents."
+        }
+      ),
       subs:[{id:"d3_s1",text:"CVD policy published and accessible"},{id:"d3_s2",text:"Vulnerability reporting contact publicly documented"},{id:"d3_s3",text:"Early warning to ENISA within 24 hours"},{id:"d3_s4",text:"Technical notification within 72 hours"},{id:"d3_s5",text:"Final report within 14 days"},{id:"d3_s6",text:"Users notified with protective guidance"},{id:"d3_s7",text:"Secure advisory and patch distribution"},{id:"d3_s8",text:"Pre-drafted templates and designated reporters"},{id:"d3_s9",text:"Severe incidents reportable through same workflow"},{id:"d3_s10",text:"Escalation distinguishes vuln discovery from active incident"}]},
     { id:"d4",section:"D",title:"Public Advisory",body:"Do you publicly disclose fixed vulnerabilities with affected products, severity, and remediation guidance?",ref:"Annex I Part II §(4) · Art. 13(6)",
       ctx:is("embedded")?"Align with ENISA and ICS-CERT advisory formats.":is("cloud")?"Include API versions, regions, server-side vs. customer action.":"CRA requires public disclosure of fixed vulns, separate from ENISA reporting.",
@@ -212,6 +275,7 @@ function Appear({children,delay=0,style:extra}){
    ═══════════════════════════════════════════════════════ */
 export default function App(){
   const [step,setStep]=useState("landing");
+  const [sector,setSector]=useState(null);
   const [pt,setPt]=useState(null);
   const [qi,setQi]=useState(0);
   const [mainAns,setMainAns]=useState({});
@@ -222,7 +286,7 @@ export default function App(){
   const [dir,setDir]=useState(1); // 1=forward,-1=back
   const [key,setKey]=useState(0); // force re-render for transition
 
-  const qs=useMemo(()=>pt?buildQuestions(pt):[],[pt]);
+  const qs=useMemo(()=>sector&&pt?buildQuestions(sector,pt):[],[sector,pt]);
   const nav=(fn,d=1)=>{setDir(d);setKey(k=>k+1);fn()};
 
   /* Rating scale */
@@ -263,28 +327,46 @@ export default function App(){
           <h1 style={{fontSize:34,fontWeight:800,color:C.ink,lineHeight:1.15,margin:"14px 0 12px",letterSpacing:"-.03em"}}>
             Cyber Resilience Act<br/>Readiness Assessment
           </h1>
-          <p style={{fontSize:15,color:C.sub,maxWidth:500,lineHeight:1.7,marginBottom:32}}>
-            Map your product against every essential CRA requirement. Each question links to specific articles and Annex I clauses with drill-down criteria for precise gap scoring.
+          <p style={{fontSize:15,color:C.sub,maxWidth:520,lineHeight:1.7,marginBottom:32}}>
+            Assess your digital product's compliance with the EU CRA across all sectors. Sector-specific guidance for healthcare, IoT, industrial, automotive, and financial technology. Each question maps to specific CRA articles and Annex I clauses.
           </p>
         </Appear>
 
         <Appear delay={.1}>
-          <Label>Select your product architecture</Label>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:32}}>
-            {PTYPES.map(p=>{const on=pt===p.id;
-              return <button key={p.id} onClick={()=>setPt(p.id)} style={{
-                fontFamily:ff,textAlign:"left",cursor:"pointer",padding:"16px 18px",borderRadius:10,
-                border:`1.5px solid ${on?C.primary:C.border}`,background:on?C.primarySoft:C.surface,
-                transition:"all .15s ease",boxShadow:on?"0 0 0 3px rgba(61,90,241,.12)":"none",
+          <Label>Select your sector</Label>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:24}}>
+            {SECTORS.map(s=>{const on=sector===s.id;
+              return <button key={s.id} onClick={()=>setSector(s.id)} style={{
+                fontFamily:ff,textAlign:"left",cursor:"pointer",padding:"14px 16px",borderRadius:10,
+                border:`1.5px solid ${on?s.color:C.border}`,background:on?`${s.color}08`:C.surface,
+                transition:"all .15s ease",boxShadow:on?`0 0 0 3px ${s.color}15`:"none",
               }}>
                 <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
-                  <span style={{fontSize:16,color:on?C.primary:C.ghost}}>{p.icon}</span>
-                  <span style={{fontSize:14,fontWeight:600,color:on?C.primary:C.ink}}>{p.label}</span>
+                  <span style={{fontSize:16,color:on?s.color:C.ghost}}>{s.icon}</span>
+                  <span style={{fontSize:13,fontWeight:600,color:on?s.color:C.ink,lineHeight:1.2}}>{s.label}</span>
+                </div>
+                <div style={{fontSize:10.5,color:C.dim,lineHeight:1.4,paddingLeft:24}}>{s.desc}</div>
+              </button>})}
+          </div>
+        </Appear>
+
+        {sector && <Appear delay={.15} key={sector}>
+          <Label>Select your product architecture</Label>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:32}}>
+            {PTYPES.map(p=>{const on=pt===p.id;const sectorObj=SECTORS.find(x=>x.id===sector);
+              return <button key={p.id} onClick={()=>setPt(p.id)} style={{
+                fontFamily:ff,textAlign:"left",cursor:"pointer",padding:"16px 18px",borderRadius:10,
+                border:`1.5px solid ${on?sectorObj.color:C.border}`,background:on?`${sectorObj.color}08`:C.surface,
+                transition:"all .15s ease",boxShadow:on?`0 0 0 3px ${sectorObj.color}15`:"none",
+              }}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+                  <span style={{fontSize:16,color:on?sectorObj.color:C.ghost}}>{p.icon}</span>
+                  <span style={{fontSize:14,fontWeight:600,color:on?sectorObj.color:C.ink}}>{p.label}</span>
                 </div>
                 <div style={{fontSize:11.5,color:C.dim,lineHeight:1.5,paddingLeft:24}}>{p.desc}</div>
               </button>})}
           </div>
-        </Appear>
+        </Appear>}
 
         <Appear delay={.15}>
           <Card style={{marginBottom:28,background:C.raised}}>
@@ -301,11 +383,11 @@ export default function App(){
         </Appear>
 
         <Appear delay={.2}><div style={{display:"flex",alignItems:"center",gap:12}}>
-          <button onClick={()=>nav(()=>{setQi(0);setStep("survey")})} disabled={!pt} style={{
-            fontFamily:ff,fontSize:14,fontWeight:600,border:"none",borderRadius:8,cursor:pt?"pointer":"default",
-            background:pt?C.primary:C.ghost,color:"#fff",padding:"12px 28px",
-            transition:"all .2s",transform:pt?"scale(1)":"scale(.98)",
-            boxShadow:pt?"0 2px 12px rgba(61,90,241,.25)":"none",
+          <button onClick={()=>nav(()=>{setQi(0);setStep("survey")})} disabled={!sector||!pt} style={{
+            fontFamily:ff,fontSize:14,fontWeight:600,border:"none",borderRadius:8,cursor:(sector&&pt)?"pointer":"default",
+            background:(sector&&pt)?(SECTORS.find(s=>s.id===sector)?.color||C.primary):C.ghost,color:"#fff",padding:"12px 28px",
+            transition:"all .2s",transform:(sector&&pt)?"scale(1)":"scale(.98)",
+            boxShadow:(sector&&pt)?`0 2px 12px ${(SECTORS.find(s=>s.id===sector)?.color||C.primary)}40`:"none",
           }}>Begin assessment</button>
           <span style={{fontSize:12,color:C.mute}}>22 questions · ~130 criteria · ~20 min</span>
         </div></Appear>
@@ -349,8 +431,9 @@ export default function App(){
 
             {/* Context */}
             <div style={{background:sec.soft,borderRadius:8,padding:"12px 14px",marginBottom:20,borderLeft:`3px solid ${sec.accent}`}}>
-              <div style={{fontSize:10,fontWeight:600,color:sec.accent,marginBottom:3,textTransform:"uppercase",letterSpacing:".04em"}}>
-                {PTYPES.find(p=>p.id===pt)?.label}
+              <div style={{display:"flex",gap:6,marginBottom:4}}>
+                <Pill color={SECTORS.find(s=>s.id===sector)?.color||sec.accent}>{SECTORS.find(s=>s.id===sector)?.label}</Pill>
+                <Pill color={sec.accent}>{PTYPES.find(p=>p.id===pt)?.label}</Pill>
               </div>
               <div style={{fontSize:12,color:C.sub,lineHeight:1.65}}>{q.ctx}</div>
             </div>
@@ -457,6 +540,7 @@ export default function App(){
 
   /* ════ RESULTS ════ */
   if(step==="results"){
+    const sectorL=SECTORS.find(s=>s.id===sector)?.label;
     const ptL=PTYPES.find(p=>p.id===pt)?.label;
     const scored=qs.filter(q=>mainAns[q.id]&&mainAns[q.id]>0);
     const naC=qs.filter(q=>mainAns[q.id]===0).length;
@@ -481,8 +565,17 @@ export default function App(){
     const s26S=scored.filter(q=>s26Q.includes(q.id)),s26=s26S.length?Math.round(s26S.reduce((a,q)=>a+qS[q.id],0)/s26S.length):null;
     const d27S=scored.filter(q=>!s26Q.includes(q.id)),d27=d27S.length?Math.round(d27S.reduce((a,q)=>a+qS[q.id],0)/d27S.length):null;
 
-    const fdaM={a1:85,a2:90,a3:70,a4:60,b1:80,b2:50,b3:65,b4:75,b5:40,c1:70,c2:30,c3:55,c4:25,c5:75,c6:50,d1:95,d2:80,d3:45,d4:40,e1:60,e2:35,e3:10};
-    const fdaO=scored.length?Math.round(scored.reduce((a,q)=>a+(fdaM[q.id]||0),0)/scored.length):0;
+    // Regulatory overlap mappings by sector
+    const regOverlap = {
+      healthcare: {label:"FDA Section 524B",map:{a1:85,a2:90,a3:70,a4:60,b1:80,b2:50,b3:65,b4:75,b5:40,c1:70,c2:30,c3:55,c4:25,c5:75,c6:50,d1:95,d2:80,d3:45,d4:40,e1:60,e2:35,e3:10}},
+      iot: {label:"RED (2014/53/EU) Art. 3.3",map:{a1:40,a2:50,a3:30,a4:20,b1:60,b2:70,b3:50,b4:55,b5:30,c1:40,c2:20,c3:35,c4:60,c5:25,c6:30,d1:50,d2:40,d3:30,d4:25,e1:35,e2:45,e3:50}},
+      industrial: {label:"IEC 62443",map:{a1:90,a2:85,a3:60,a4:50,b1:70,b2:80,b3:90,b4:85,b5:75,c1:60,c2:40,c3:80,c4:45,c5:70,c6:55,d1:65,d2:75,d3:50,d4:45,e1:70,e2:50,e3:40}},
+      automotive: {label:"ISO 21434 / UNECE R155",map:{a1:95,a2:90,a3:75,a4:65,b1:85,b2:70,b3:75,b4:80,b5:60,c1:80,c2:50,c3:70,c4:40,c5:85,c6:70,d1:75,d2:85,d3:60,d4:55,e1:80,e2:60,e3:70}},
+      financial: {label:"PCI-DSS v4.0",map:{a1:70,a2:75,a3:80,a4:70,b1:90,b2:85,b3:95,b4:90,b5:65,c1:75,c2:50,c3:85,c4:70,c5:60,c6:55,d1:80,d2:85,d3:50,d4:60,e1:65,e2:50,e3:45}},
+      generic: {label:"ISO 27001",map:{a1:75,a2:70,a3:65,a4:60,b1:70,b2:65,b3:80,b4:75,b5:55,c1:60,c2:40,c3:75,c4:65,c5:70,c6:50,d1:70,d2:75,d3:45,d4:50,e1:65,e2:50,e3:55}}
+    };
+    const regData=regOverlap[sector]||regOverlap.generic;
+    const regO=scored.length?Math.round(scored.reduce((a,q)=>a+(regData.map[q.id]||0),0)/scored.length):0;
 
     const aMap=[
       {c:"§(1)",l:"Risk-based design",q:["a1","a2"]},{c:"§(2)(a)",l:"No known vulns",q:["b1","d2"]},{c:"§(2)(b)",l:"Secure defaults",q:["b2"]},{c:"§(2)(c)",l:"Security updates",q:["c1","c2"]},
@@ -493,18 +586,54 @@ export default function App(){
       {c:"AnnexII",l:"User info",q:["e2"]},{c:"AnnexVII",l:"Tech docs",q:["e1","a4"]},{c:"AnnexV/VIII",l:"Conformity",q:["e3"]},
     ].map(ax=>{const r=scored.filter(q=>ax.q.includes(q.id));return{...ax,sc:r.length?Math.round(r.reduce((a,q)=>a+qS[q.id],0)/r.length):null}});
 
+    // Sector-specific insights
+    const sectorInsights = {
+      healthcare: [
+        {condition: overall>=50, c:C.primary, t:"Healthcare: FDA 524B + CRA dual compliance achievable. Focus SBOM and ENISA workflows."},
+        {condition: qS.d3<40, c:C.err, t:"Healthcare: CRA ENISA + CISA ICS-CERT + FDA triple reporting required. Pre-configure now."},
+        {condition: qS.e3>=60, c:C.ok, t:"Strong conformity process. Leverage MDR documentation for CRA technical file overlap."}
+      ],
+      iot: [
+        {condition: qS.b2<50, c:C.err, t:"IoT: Consumer devices frequently ship insecure-by-default. CRA enforcement will be strict here."},
+        {condition: qS.c1>=60, c:C.ok, t:"Strong OTA update capability. Critical for IoT where physical access for patching is impractical."},
+        {condition: overall<50, c:C.warn, t:"Consumer IoT faces high CRA scrutiny. Establish SBOM + vuln management immediately."}
+      ],
+      industrial: [
+        {condition: qS.c2<50, c:C.warn, t:"ICS: 10-20 year operational life common. Ensure support period meets CRA minimum + realistic usage."},
+        {condition: qS.a2>=60, c:C.ok, t:"Strong threat modeling. ICS requires both IT and OT threat coverage — maintain this rigor."},
+        {condition: qS.d3<40, c:C.err, t:"Critical infrastructure: ENISA + national CERT + sector regulator. Triple reporting workflows needed."}
+      ],
+      automotive: [
+        {condition: qS.b1>=60, c:C.ok, t:"Automotive: ISO 21434 + CRA alignment is working. Maintain integrated cybersecurity approach."},
+        {condition: qS.c1<50, c:C.warn, t:"Vehicle OTA update gaps. CRA + UNECE R155 both require field update capability with rollback."},
+        {condition: qS.d3>=60, c:C.ok, t:"Good disclosure readiness. Align CRA ENISA with type-approval authority notifications."}
+      ],
+      financial: [
+        {condition: qS.b1>=60, c:C.ok, t:"PCI-DSS scanning foundation strong. CRA adds exploitability assessment beyond vulnerability discovery."},
+        {condition: qS.d3<40, c:C.err, t:"FinTech: CRA + DORA dual reporting. ENISA for product vulns, national authority for operational incidents."},
+        {condition: qS.b4>=70, c:C.ok, t:"Strong cryptographic posture. Maintain CBOM and prepare for post-quantum migration planning."}
+      ],
+      generic: [
+        {condition: overall>=60, c:C.ok, t:"Solid foundation across CRA requirements. Focus on sector-specific regulations next."},
+        {condition: qS.d3<40, c:C.warn, t:"ENISA reporting capability essential. First enforced obligation (Sep 2026) — build workflows now."}
+      ]
+    };
+
     const ins=[];
+    // Add sector-specific insights
+    (sectorInsights[sector]||sectorInsights.generic).forEach(si=>{if(si.condition)ins.push({c:si.c,t:si.t})});
+
+    // Generic cross-cutting insights
     if(qS.d1>=60&&qS.d2<40)ins.push({c:C.warn,t:"SBOM generated but no continuous vulnerability monitoring — the inventory isn't driving ongoing security."});
     if(qS.b1>=60&&qS.c1<40)ins.push({c:C.warn,t:"Strong scanning but weak update mechanism — you find vulns but can't ship fixes efficiently."});
     if(qS.b3>=60&&qS.c3<40)ins.push({c:C.warn,t:"Good authentication but poor logging — unauthorized access attempts may go undetected."});
     if(qS.a1>=60&&qS.e1<40)ins.push({c:C.warn,t:"Risk assessment done but not in technical documentation — evidence unavailable for conformity."});
-    if(qS.d3<30)ins.push({c:C.err,t:"Vulnerability disclosure and ENISA reporting are the first enforced obligations (Sep 2026). Critical gap."});
+    if(qS.d3<30&&!ins.some(x=>x.t.includes("ENISA")))ins.push({c:C.err,t:"Vulnerability disclosure and ENISA reporting are the first enforced obligations (Sep 2026). Critical gap."});
     if(qS.d2>=60&&qS.d4<30)ins.push({c:C.warn,t:"Vulns handled internally but no public advisories. Part II §(4) requires disclosure of fixes."});
     if(qS.a4<30)ins.push({c:C.err,t:"Build pipeline security gap. Annex VII §2(c) requires documented, secured production processes."});
     if(qS.c6<30&&overall>=40)ins.push({c:C.warn,t:"No recall procedures. Art. 13(10) requires ability to withdraw non-conformant products."});
     if(overall>=60&&conf<40)ins.push({c:C.primary,t:`Score looks reasonable but only ${conf}% criteria rated. Complete more drill-downs for reliability.`});
     if(secS.D>=70&&secS.A>=60)ins.push({c:C.ok,t:"Strong vuln management + risk governance = solid compliance foundation."});
-    if(fdaO>=60&&overall>=50)ins.push({c:C.primary,t:`~${fdaO}% overlap with FDA 524B. Existing work provides a strong CRA foundation.`});
 
     const weakSubs=[];
     scored.forEach(q=>q.subs.forEach((x,idx)=>{const v=subAns[x.id];if(v&&v>0&&v<=2)weakSubs.push({text:x.text,q:q.title,sec:q.section,ref:q.ref,v})}));
@@ -520,7 +649,8 @@ export default function App(){
         <Appear><div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:28}}>
           <div>
             <div style={{display:"flex",gap:5,marginBottom:8}}>
-              <Pill color={C.primary} filled>CRA Readiness Report</Pill>
+              <Pill color={SECTORS.find(s=>s.id===sector)?.color||C.primary} filled>CRA Readiness Report</Pill>
+              <Pill color={SECTORS.find(s=>s.id===sector)?.color||C.dim}>{sectorL}</Pill>
               <Pill color={C.dim}>{ptL}</Pill>
               {lead.company&&<Pill color={C.dim}>{lead.company}</Pill>}
             </div>
@@ -587,20 +717,31 @@ export default function App(){
 
         {/* Insights */}
         {ins.length>0&&<Appear delay={D()}><Card style={{marginBottom:12}}>
-          <Label>Cross-section findings</Label>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+            <Label>{SECTORS.find(s=>s.id===sector)?.label} insights</Label>
+            <Pill color={SECTORS.find(s=>s.id===sector)?.color||C.dim}>{ins.length} findings</Pill>
+          </div>
           {ins.map((x,i)=><div key={i} style={{padding:"10px 14px",borderLeft:`3px solid ${x.c}`,background:C.raised,borderRadius:"0 8px 8px 0",marginBottom:4,transition:"background .15s"}}>
             <span style={{fontSize:12,color:C.sub,lineHeight:1.65}}>{x.t}</span>
           </div>)}
         </Card></Appear>}
 
-        {/* FDA */}
+        {/* Regulatory Alignment */}
         <Appear delay={D()}><Card style={{marginBottom:12}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-            <Label>FDA Section 524B overlap</Label>
-            <span style={{fontSize:18,fontWeight:700,color:C.primary,fontFamily:fm}}>{fdaO}%</span>
+            <Label>{regData.label} overlap with CRA</Label>
+            <span style={{fontSize:18,fontWeight:700,color:SECTORS.find(s=>s.id===sector)?.color||C.primary,fontFamily:fm}}>{regO}%</span>
           </div>
+          <p style={{fontSize:11,color:C.mute,marginBottom:10,lineHeight:1.5}}>
+            {sector==="healthcare"?"Existing FDA 524B work provides strong CRA foundation. Focus gaps: ENISA reporting, public disclosure.":
+             sector==="iot"?"Radio Equipment Directive (RED) cybersecurity requirements now align with CRA. Leverage for dual compliance.":
+             sector==="industrial"?"IEC 62443 industrial security standards overlap significantly. CRA adds SBOM and disclosure requirements.":
+             sector==="automotive"?"ISO 21434 + UNECE R155 provide strong cybersecurity base. CRA adds EU market surveillance layer.":
+             sector==="financial"?"PCI-DSS already covers many product security controls. CRA adds SBOM, ENISA reporting, support period.":
+             "ISO 27001 ISMS provides process foundation. CRA requires product-specific attestation and vulnerability management."}
+          </p>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:3}}>
-            {scored.map(q=>{const ov=fdaM[q.id];
+            {scored.map(q=>{const ov=regData.map[q.id];
               return <div key={q.id} style={{display:"flex",alignItems:"center",gap:6,padding:"5px 8px",background:C.raised,borderRadius:6}}>
                 <span style={{fontSize:10,fontWeight:700,fontFamily:fm,minWidth:24,color:ov>=70?C.ok:ov>=40?C.warn:C.err}}>{ov}%</span>
                 <span style={{fontSize:10.5,color:C.ink,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{q.title}</span>
@@ -674,7 +815,7 @@ export default function App(){
 
         <div style={{textAlign:"center",marginTop:14,paddingBottom:40}}>
           <button style={{fontFamily:ff,background:"none",border:"none",color:C.mute,fontSize:11,cursor:"pointer"}}
-            onClick={()=>{setStep("landing");setPt(null);setQi(0);setMainAns({});setSubAns({});setNotes({});setShowSubs({});setLead({name:"",email:"",company:"",role:"",device:""});}}>Retake assessment</button>
+            onClick={()=>{setStep("landing");setSector(null);setPt(null);setQi(0);setMainAns({});setSubAns({});setNotes({});setShowSubs({});setLead({name:"",email:"",company:"",role:"",device:""});}}>Retake assessment</button>
         </div>
       </div>
     </div>;
