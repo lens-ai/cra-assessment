@@ -294,6 +294,8 @@ export default function App(){
   const [loadingShared,setLoadingShared]=useState(false); // Loading shared report
   const [sendToClient,setSendToClient]=useState(true); // Send results to client email
   const resultsRef = useRef(null); // Ref for PDF generation
+  const [productInScope,setProductInScope]=useState(null); // Art. 3 - Product scope
+  const [productClass,setProductClass]=useState(null); // Art. 7 - Classification (I or II)
 
   const qs=useMemo(()=>sector&&pt?buildQuestions(sector,pt):[],[sector,pt]);
   const nav=(fn,d=1)=>{setDir(d);setKey(k=>k+1);fn()};
@@ -310,6 +312,8 @@ export default function App(){
           // Restore all state from saved assessment
           setSector(data.config.sector);
           setPt(data.config.productType);
+          setProductInScope(data.config.productInScope !== undefined ? data.config.productInScope : null);
+          setProductClass(data.config.productClass || null);
           setMainAns(data.answers.mainAns);
           setSubAns(data.answers.subAns);
           setNotes(data.answers.notes || {});
@@ -369,6 +373,8 @@ export default function App(){
             config: {
               sector,
               productType: pt,
+              productInScope,
+              productClass,
             },
             answers: {
               mainAns,
@@ -630,7 +636,7 @@ export default function App(){
         </Appear>
 
         <Appear delay={.2}><div style={{display:"flex",alignItems:"center",gap:12}}>
-          <button onClick={()=>nav(()=>{setQi(0);setStep("survey")})} disabled={!sector||!pt} style={{
+          <button onClick={()=>nav(()=>setStep("screening"))} disabled={!sector||!pt} style={{
             fontFamily:ff,fontSize:14,fontWeight:600,border:"none",borderRadius:8,cursor:(sector&&pt)?"pointer":"default",
             background:(sector&&pt)?(SECTORS.find(s=>s.id===sector)?.color||C.primary):C.ghost,color:"#fff",padding:"12px 28px",
             transition:"all .2s",transform:(sector&&pt)?"scale(1)":"scale(.98)",
@@ -641,6 +647,164 @@ export default function App(){
       </div>
     </div>
   );
+
+  /* ════ SCREENING ════ */
+  if(step==="screening") {
+    const sectorObj = SECTORS.find(s=>s.id===sector);
+    const canProceed = productInScope !== null && (productInScope === false || productClass !== null);
+
+    return (
+      <div style={{minHeight:"100vh",background:C.bg,fontFamily:ff}}>
+        <style>{cssOnce}</style>
+        <div style={{maxWidth:820,margin:"0 auto",padding:"48px 28px"}}>
+          <Appear>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:40}}>
+              <span style={{fontSize:20,fontWeight:800,color:C.primary,fontFamily:ff}}>Complira</span>
+            </div>
+          </Appear>
+
+          <Appear delay={.05}>
+            <Pill color={C.dim}>Articles 1-9 · Regulatory Framework</Pill>
+            <h1 style={{fontSize:28,fontWeight:800,color:C.ink,lineHeight:1.2,margin:"14px 0 12px",letterSpacing:"-.02em"}}>
+              Product Scope & Classification
+            </h1>
+            <p style={{fontSize:14,color:C.sub,maxWidth:600,lineHeight:1.7,marginBottom:32}}>
+              These preliminary questions determine if the EU Cyber Resilience Act applies to your product and what compliance obligations you'll face.
+            </p>
+          </Appear>
+
+          {/* Article 3 - Product Scope */}
+          <Appear delay={.1}>
+            <Card style={{marginBottom:24}}>
+              <div style={{display:"flex",gap:6,marginBottom:10}}>
+                <Pill color={C.primary}>Art. 3</Pill>
+                <Pill color={C.dim}>Product Scope</Pill>
+              </div>
+              <h2 style={{fontSize:18,fontWeight:700,color:C.ink,margin:"0 0 8px",letterSpacing:"-.015em"}}>
+                Does the CRA apply to your product?
+              </h2>
+              <p style={{fontSize:13,color:C.sub,lineHeight:1.7,marginBottom:16}}>
+                The Cyber Resilience Act applies to products with digital elements (hardware or software) that will be placed on the EU market. This includes both standalone software and hardware products with embedded software.
+              </p>
+
+              <Label>Select one</Label>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                {[
+                  {v:true,label:"Yes — Product has digital elements",desc:"Software, hardware with embedded software, or networked devices intended for EU market"},
+                  {v:false,label:"No — Out of scope",desc:"Non-digital products, internal tools, or products exempt under Art. 2(2)"}
+                ].map(opt=>{
+                  const selected = productInScope === opt.v;
+                  return (
+                    <button key={String(opt.v)} onClick={()=>setProductInScope(opt.v)} style={{
+                      fontFamily:ff,textAlign:"left",cursor:"pointer",padding:"16px 18px",borderRadius:10,
+                      border:`1.5px solid ${selected?sectorObj.color:C.border}`,
+                      background:selected?`${sectorObj.color}08`:C.surface,
+                      transition:"all .15s ease",
+                      boxShadow:selected?`0 0 0 3px ${sectorObj.color}15`:"none",
+                    }}>
+                      <div style={{fontSize:14,fontWeight:600,color:selected?sectorObj.color:C.ink,marginBottom:6}}>
+                        {opt.label}
+                      </div>
+                      <div style={{fontSize:11.5,color:C.sub,lineHeight:1.5}}>
+                        {opt.desc}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </Card>
+          </Appear>
+
+          {/* Article 7 - Classification (only if in scope) */}
+          {productInScope === true && (
+            <Appear delay={.15}>
+              <Card style={{marginBottom:32}}>
+                <div style={{display:"flex",gap:6,marginBottom:10}}>
+                  <Pill color={C.primary}>Art. 7</Pill>
+                  <Pill color={C.dim}>Classification</Pill>
+                </div>
+                <h2 style={{fontSize:18,fontWeight:700,color:C.ink,margin:"0 0 8px",letterSpacing:"-.015em"}}>
+                  Is your product Critical (Class II)?
+                </h2>
+                <p style={{fontSize:13,color:C.sub,lineHeight:1.7,marginBottom:16}}>
+                  Critical products listed in Annex III require third-party Notified Body conformity assessment. All other products with digital elements are Class I (Important).
+                </p>
+
+                <Label>Select classification</Label>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                  {[
+                    {v:"I",label:"Class I — Important",desc:"Standard conformity assessment via manufacturer's self-declaration (Art. 28)"},
+                    {v:"II",label:"Class II — Critical (Annex III)",desc:"Identity management systems, browsers, password managers, VPNs, firewalls, microprocessors, ICS/SCADA, smart meters. Requires Notified Body (Art. 30)"}
+                  ].map(opt=>{
+                    const selected = productClass === opt.v;
+                    return (
+                      <button key={opt.v} onClick={()=>setProductClass(opt.v)} style={{
+                        fontFamily:ff,textAlign:"left",cursor:"pointer",padding:"16px 18px",borderRadius:10,
+                        border:`1.5px solid ${selected?sectorObj.color:C.border}`,
+                        background:selected?`${sectorObj.color}08`:C.surface,
+                        transition:"all .15s ease",
+                        boxShadow:selected?`0 0 0 3px ${sectorObj.color}15`:"none",
+                      }}>
+                        <div style={{fontSize:14,fontWeight:600,color:selected?sectorObj.color:C.ink,marginBottom:6}}>
+                          {opt.label}
+                        </div>
+                        <div style={{fontSize:11.5,color:C.sub,lineHeight:1.5}}>
+                          {opt.desc}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {productClass === "II" && (
+                  <div style={{marginTop:16,padding:"12px 14px",background:C.warnSoft,borderRadius:8,borderLeft:`3px solid ${C.warn}`}}>
+                    <div style={{fontSize:12,fontWeight:600,color:C.warn,marginBottom:4}}>⚠️ Notified Body Required</div>
+                    <div style={{fontSize:11.5,color:C.sub,lineHeight:1.6}}>
+                      Critical products require third-party conformity assessment by an EU-notified body before CE marking (Art. 30). Additional technical documentation and testing requirements apply.
+                    </div>
+                  </div>
+                )}
+              </Card>
+            </Appear>
+          )}
+
+          {/* Navigation */}
+          <Appear delay={.2}>
+            <div style={{display:"flex",alignItems:"center",gap:12}}>
+              <button onClick={()=>nav(()=>setStep("landing"),-1)} style={{
+                fontFamily:ff,fontSize:13,fontWeight:600,border:`1.5px solid ${C.border}`,borderRadius:8,
+                cursor:"pointer",background:C.surface,color:C.sub,padding:"10px 20px",transition:"all .2s"
+              }}>
+                ← Back
+              </button>
+
+              {productInScope === false ? (
+                <div style={{padding:"12px 18px",background:C.errSoft,borderRadius:8,borderLeft:`3px solid ${C.err}`,flex:1}}>
+                  <div style={{fontSize:12,fontWeight:600,color:C.err,marginBottom:2}}>CRA Not Applicable</div>
+                  <div style={{fontSize:11.5,color:C.sub,lineHeight:1.5}}>
+                    Your product appears to be outside CRA scope. Consider reviewing Art. 2(2) exemptions or consulting legal counsel if uncertain.
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <button onClick={()=>nav(()=>{setQi(0);setStep("survey")})} disabled={!canProceed} style={{
+                    fontFamily:ff,fontSize:14,fontWeight:600,border:"none",borderRadius:8,
+                    cursor:canProceed?"pointer":"default",
+                    background:canProceed?sectorObj.color:C.ghost,color:"#fff",padding:"12px 28px",
+                    transition:"all .2s",transform:canProceed?"scale(1)":"scale(.98)",
+                    boxShadow:canProceed?`0 2px 12px ${sectorObj.color}40`:"none",
+                  }}>
+                    Continue to assessment →
+                  </button>
+                  <span style={{fontSize:12,color:C.mute}}>22 questions · ~130 criteria</span>
+                </>
+              )}
+            </div>
+          </Appear>
+        </div>
+      </div>
+    );
+  }
 
   /* ════ SURVEY ════ */
   if(step==="survey"){
@@ -904,6 +1068,16 @@ export default function App(){
     if(overall>=60&&conf<40)ins.push({c:C.primary,t:`Score looks reasonable but only ${conf}% criteria rated. Complete more drill-downs for reliability.`});
     if(secS.D>=70&&secS.A>=60)ins.push({c:C.ok,t:"Strong vuln management + risk governance = solid compliance foundation."});
 
+    // Class II (Critical) specific insights
+    if(productClass==="II"){
+      ins.unshift({c:C.warn,t:"⚠️ Class II (Critical): Third-party Notified Body conformity assessment required before CE marking (Art. 30). Budget 6-12 months for assessment process."});
+      if(qS.e1<70)ins.push({c:C.err,t:"Class II: Notified Body will audit technical documentation comprehensively. Gaps in Annex VII documentation will delay conformity."});
+      if(qS.a1<70||qS.a2<70)ins.push({c:C.err,t:"Class II: Rigorous risk assessment and threat modeling required for Notified Body review. Current maturity insufficient."});
+      if(overall>=70)ins.push({c:C.ok,t:"Strong overall readiness. Focus on completing technical documentation to Notified Body standards."});
+    } else if(productClass==="I"){
+      ins.unshift({c:C.ok,t:"✓ Class I (Important): Self-assessment conformity via EU Declaration (Art. 28). No third-party audit required."});
+    }
+
     const weakSubs=[];
     scored.forEach(q=>q.subs.forEach((x,idx)=>{const v=subAns[x.id];if(v&&v>0&&v<=2)weakSubs.push({text:x.text,q:q.title,sec:q.section,ref:q.ref,v})}));
     weakSubs.sort((a,b)=>a.v-b.v);
@@ -921,6 +1095,7 @@ export default function App(){
               <Pill color={SECTORS.find(s=>s.id===sector)?.color||C.primary} filled>CRA Readiness Report</Pill>
               <Pill color={SECTORS.find(s=>s.id===sector)?.color||C.dim}>{sectorL}</Pill>
               <Pill color={C.dim}>{ptL}</Pill>
+              {productClass&&<Pill color={productClass==="II"?C.warn:C.primary}>Class {productClass}{productClass==="II"?" — Critical":""}</Pill>}
               {lead.company&&<Pill color={C.dim}>{lead.company}</Pill>}
             </div>
             <h1 style={{fontSize:24,fontWeight:800,color:C.ink,letterSpacing:"-.025em",margin:0}}>Compliance Gap Analysis</h1>
