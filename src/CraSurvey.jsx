@@ -566,10 +566,7 @@ export default function App(){
       <style>{cssOnce}</style>
       <div style={{maxWidth:820,margin:"0 auto",padding:"48px 28px"}}>
         <Appear><div style={{display:"flex",alignItems:"center",gap:8,marginBottom:40}}>
-          <div style={{width:30,height:30,borderRadius:7,background:`linear-gradient(135deg,${C.ink},${C.primary})`,display:"flex",alignItems:"center",justifyContent:"center"}}>
-            <span style={{color:"#fff",fontWeight:700,fontSize:13,fontFamily:fm}}>C</span>
-          </div>
-          <span style={{fontSize:15,fontWeight:700,color:C.ink}}>Complira</span>
+          <span style={{fontSize:20,fontWeight:800,color:C.primary,fontFamily:ff}}>Complira</span>
         </div></Appear>
 
         <Appear delay={.05}>
