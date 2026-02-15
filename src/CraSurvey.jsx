@@ -820,6 +820,7 @@ export default function App(){
           <div style={{display:"flex",gap:5,alignItems:"center"}}>
             <Pill color={sec.accent} filled>{q.section}</Pill>
             <span style={{fontSize:12,fontWeight:500,color:sec.accent}}>{sec.label}</span>
+            {productClass&&<Pill color={productClass==="II"?C.warn:C.primary}>Class {productClass}</Pill>}
           </div>
           <span style={{fontSize:12,color:C.dim,fontFamily:fm,fontWeight:500}}>{qi+1} of {qs.length}</span>
         </div>
@@ -848,6 +849,19 @@ export default function App(){
               </div>
               <div style={{fontSize:12,color:C.sub,lineHeight:1.65}}>{q.ctx}</div>
             </div>
+
+            {/* Class II specific guidance */}
+            {productClass==="II" && (q.id==="a1"||q.id==="a2"||q.id==="e1"||q.id==="e3") && (
+              <div style={{marginBottom:20,padding:"12px 14px",background:C.warnSoft,borderRadius:8,borderLeft:`3px solid ${C.warn}`}}>
+                <div style={{fontSize:11,fontWeight:600,color:C.warn,marginBottom:4}}>⚠️ Class II — Critical Product (Annex III)</div>
+                <div style={{fontSize:11,color:C.sub,lineHeight:1.6}}>
+                  {q.id==="a1"&&"Notified Body will rigorously audit risk assessment methodology, completeness, and traceability. Document all residual risks and mitigation measures."}
+                  {q.id==="a2"&&"Threat modeling must cover both IT and product-specific attack vectors. Notified Body expects STRIDE/PASTA or equivalent formal methodology with documented assumptions."}
+                  {q.id==="e1"&&"Technical documentation (Annex VII) will be comprehensively audited by Notified Body. Gaps or inconsistencies will delay conformity assessment. Target 90%+ maturity."}
+                  {q.id==="e3"&&"Class II requires third-party Notified Body conformity assessment (Art. 30) before CE marking. Self-assessment is NOT permitted. Budget 6-12 months for this process."}
+                </div>
+              </div>
+            )}
 
             {/* Main rating */}
             <Label>Overall maturity</Label>
