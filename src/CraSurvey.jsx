@@ -680,19 +680,19 @@ export default function App(){
     return (
       <div style={{minHeight:"100vh",background:C.bg,fontFamily:ff}}>
         <style>{cssOnce}</style>
-        <div style={{maxWidth:820,margin:"0 auto",padding:"48px 28px"}}>
+        <div style={{maxWidth:820,margin:"0 auto",padding:"clamp(24px, 5vw, 48px) clamp(16px, 4vw, 28px)"}}>
           <Appear>
-            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:40}}>
-              <span style={{fontSize:20,fontWeight:800,color:C.primary,fontFamily:ff}}>Complira</span>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:"clamp(24px, 5vw, 40px)"}}>
+              <span style={{fontSize:"clamp(22px, 4vw, 24px)",fontWeight:800,color:C.primary,fontFamily:ff}}>Complira</span>
             </div>
           </Appear>
 
           <Appear delay={.05}>
             <Pill color={C.dim}>Articles 1-9 · Regulatory Framework</Pill>
-            <h1 style={{fontSize:28,fontWeight:800,color:C.ink,lineHeight:1.2,margin:"14px 0 12px",letterSpacing:"-.02em"}}>
+            <h1 style={{fontSize:"clamp(24px, 5vw, 32px)",fontWeight:800,color:C.ink,lineHeight:1.2,margin:"14px 0 12px",letterSpacing:"-.02em"}}>
               Product Scope & Classification
             </h1>
-            <p style={{fontSize:14,color:C.sub,maxWidth:600,lineHeight:1.7,marginBottom:32}}>
+            <p style={{fontSize:"clamp(14px, 3vw, 16px)",color:C.sub,maxWidth:600,lineHeight:1.7,marginBottom:32}}>
               These preliminary questions determine if the EU Cyber Resilience Act applies to your product and what compliance obligations you'll face.
             </p>
           </Appear>
@@ -747,10 +747,10 @@ export default function App(){
                   <Pill color={C.primary}>Art. 7 & Annex III</Pill>
                   <Pill color={C.dim}>Classification</Pill>
                 </div>
-                <h2 style={{fontSize:18,fontWeight:700,color:C.ink,margin:"0 0 8px",letterSpacing:"-.015em"}}>
+                <h2 style={{fontSize:"clamp(18px, 4vw, 20px)",fontWeight:700,color:C.ink,margin:"0 0 10px",letterSpacing:"-.015em"}}>
                   Does your product provide any of these critical security functions?
                 </h2>
-                <p style={{fontSize:13,color:C.sub,lineHeight:1.7,marginBottom:16}}>
+                <p style={{fontSize:"clamp(13px, 3vw, 15px)",color:C.sub,lineHeight:1.7,marginBottom:18}}>
                   Products with these functions are Class II (Critical) under Annex III and require third-party Notified Body assessment. All other products are Class I (Important).
                 </p>
 
@@ -779,22 +779,23 @@ export default function App(){
                           setProductClass("II");
                         }
                       }} style={{
-                        fontFamily:ff,textAlign:"left",cursor:"pointer",padding:"14px 16px",borderRadius:10,
+                        fontFamily:ff,textAlign:"left",cursor:"pointer",padding:"clamp(14px, 3vw, 18px) clamp(14px, 3vw, 18px)",borderRadius:10,
                         border:`1.5px solid ${selected?C.warn:C.border}`,
                         background:selected?C.warnSoft:C.surface,
                         transition:"all .15s ease",
                         boxShadow:selected?`0 0 0 3px ${C.warn}15`:"none",
-                        display:"flex",gap:12,alignItems:"flex-start"
+                        display:"flex",gap:14,alignItems:"flex-start",
+                        minHeight:"60px"
                       }}>
-                        <div style={{marginTop:2,width:18,height:18,borderRadius:4,border:`2px solid ${selected?C.warn:C.border}`,
+                        <div style={{marginTop:2,width:22,height:22,borderRadius:5,border:`2px solid ${selected?C.warn:C.border}`,
                           background:selected?C.warn:C.surface,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                          {selected&&<span style={{color:"#fff",fontSize:12,fontWeight:700}}>✓</span>}
+                          {selected&&<span style={{color:"#fff",fontSize:14,fontWeight:700}}>✓</span>}
                         </div>
                         <div style={{flex:1}}>
-                          <div style={{fontSize:14,fontWeight:600,color:selected?C.warn:C.ink,marginBottom:4}}>
+                          <div style={{fontSize:"clamp(14px, 3vw, 15px)",fontWeight:600,color:selected?C.warn:C.ink,marginBottom:5}}>
                             {func.label}
                           </div>
-                          <div style={{fontSize:12,color:C.sub,lineHeight:1.5}}>
+                          <div style={{fontSize:"clamp(12px, 2.5vw, 13px)",color:C.sub,lineHeight:1.6}}>
                             {func.desc}
                           </div>
                         </div>
@@ -804,11 +805,11 @@ export default function App(){
                 </div>
 
                 {/* Auto-determined classification result */}
-                <div style={{marginTop:20,padding:"14px 16px",background:criticalFunctions.length>0?C.warnSoft:C.primarySoft,borderRadius:8,borderLeft:`3px solid ${criticalFunctions.length>0?C.warn:C.primary}`}}>
-                  <div style={{fontSize:13,fontWeight:600,color:criticalFunctions.length>0?C.warn:C.primary,marginBottom:6}}>
+                <div style={{marginTop:20,padding:"clamp(14px, 3vw, 18px) clamp(14px, 3vw, 18px)",background:criticalFunctions.length>0?C.warnSoft:C.primarySoft,borderRadius:8,borderLeft:`3px solid ${criticalFunctions.length>0?C.warn:C.primary}`}}>
+                  <div style={{fontSize:"clamp(13px, 3vw, 14px)",fontWeight:600,color:criticalFunctions.length>0?C.warn:C.primary,marginBottom:8}}>
                     {criticalFunctions.length>0?"⚠️ Class II — Critical Product (Annex III)":"✓ Class I — Important Product"}
                   </div>
-                  <div style={{fontSize:12,color:C.sub,lineHeight:1.7}}>
+                  <div style={{fontSize:"clamp(12px, 2.5vw, 13px)",color:C.sub,lineHeight:1.7}}>
                     {criticalFunctions.length>0
                       ?"Your product requires third-party Notified Body conformity assessment (Art. 30) before CE marking. Budget 6-12 months for this process. Additional technical documentation and security testing requirements apply."
                       :"Your product uses standard conformity assessment via manufacturer's self-declaration (Art. 28). No third-party audit required, but you must maintain comprehensive technical documentation (Annex VII)."}
@@ -921,12 +922,16 @@ export default function App(){
             {ma!==undefined && ma>0 && (
               <div style={{marginTop:20,borderTop:`1px solid ${C.soft}`,paddingTop:16,animation:"fadeIn .3s ease"}}>
                 <button onClick={()=>setShowSubs(p=>({...p,[q.id]:!open}))} style={{
-                  fontFamily:ff,background:"none",border:"none",padding:0,display:"flex",alignItems:"center",gap:8,width:"100%",cursor:"pointer",marginBottom:open?12:0,
-                }}>
+                  fontFamily:ff,background:C.raised,border:`1.5px solid ${C.border}`,padding:"12px 16px",borderRadius:8,display:"flex",alignItems:"center",gap:10,width:"100%",cursor:"pointer",marginBottom:open?14:0,
+                  transition:"all .15s ease",
+                  boxShadow:"0 1px 3px rgba(0,0,0,.04)"
+                }}
+                onMouseEnter={(e)=>e.currentTarget.style.background=C.hover}
+                onMouseLeave={(e)=>e.currentTarget.style.background=C.raised}>
                   <span style={{fontSize:14,fontWeight:600,color:C.ink}}>Drill-down criteria</span>
-                  <Pill color={subsDone===q.subs.length?C.ok:C.dim}>{subsDone}/{q.subs.length}</Pill>
+                  <Pill color={subsDone===q.subs.length?C.ok:C.warn}>{subsDone}/{q.subs.length}</Pill>
                   <div style={{flex:1,maxWidth:80}}><Bar pct={(subsDone/q.subs.length)*100}/></div>
-                  <span style={{fontSize:13,color:C.mute,transform:open?"rotate(180deg)":"none",transition:"transform .2s"}}>▾</span>
+                  <span style={{fontSize:15,color:C.primary,fontWeight:700,transform:open?"rotate(180deg)":"none",transition:"transform .2s"}}>▾</span>
                 </button>
                 {open && <div style={{display:"flex",flexDirection:"column",gap:6}}>
                   {q.subs.map((sub,idx)=>{
