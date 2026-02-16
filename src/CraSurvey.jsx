@@ -33,9 +33,15 @@ const cssOnce = `
 @keyframes shimmer{from{background-position:-200% 0}to{background-position:200% 0}}
 @keyframes widthGrow{from{width:0%}to{width:var(--w)}}
 *{box-sizing:border-box;margin:0;padding:0}
-html{-webkit-font-smoothing:antialiased;scroll-behavior:smooth}
+html{-webkit-font-smoothing:antialiased;scroll-behavior:smooth;font-size:16px}
 body{background:${C.bg};color:${C.ink};font-family:${ff}}
 ::selection{background:${C.primaryGhost};color:${C.ink}}
+@media (max-width: 768px) {
+  html{font-size:15px}
+}
+@media (max-width: 480px) {
+  html{font-size:14px}
+}
 `;
 
 const SEC = {
@@ -211,7 +217,16 @@ function buildQuestions(sector, pt) {
       ctx:is("embedded")?"Cover network segmentation, firewall rules, remote maintenance, decommissioning.":is("cloud")?"Shared responsibility, data export/deletion, integration security, SLA.":"Annex II: identity, contact, security properties, updates, support, decommissioning.",
       subs:[{id:"e2_s1",text:"Manufacturer identity and contact provided"},{id:"e2_s2",text:"Single cybersecurity contact accessible"},{id:"e2_s3",text:"Security properties in accessible language"},{id:"e2_s4",text:"Secure setup and operation instructions"},{id:"e2_s5",text:"Update process documented"},{id:"e2_s6",text:"Support period communicated"},{id:"e2_s7",text:"Decommissioning and data removal documented"},{id:"e2_s8",text:"Vulnerability reporting location accessible"},{id:"e2_s9",text:"Product identification for traceability (§3)"},{id:"e2_s10",text:"Known cybersecurity risks communicated (§5)"},{id:"e2_s11",text:"SBOM access info where available (§9)"},{id:"e2_s12",text:"Integration info for downstream compliance (§8f)"}]},
     { id:"e3",section:"E",title:"Conformity Assessment",body:"Have you classified your product, identified the conformity route, and begun preparing the EU DoC?",ref:"Annexes III-V, VIII · Art. 6, 28, 32",
-      ctx:is("embedded")?"Art. 2(2) may exempt MDR devices with equivalent cybersecurity. Verify.":is("cloud")?"Components under MDR vs CRA must be mapped independently.":is("samd")?"SaMD under MDR may be exempt — only where MDR achieves equivalent protection.":"Firmware under MDR, cloud under CRA, mobile under CRA. Map each.",
+      ctx: getContext(
+        "EU Declaration of Conformity required. Class I uses self-assessment (Art. 28), Class II requires Notified Body (Art. 30). Retain documentation 10 years.",
+        {
+          healthcare: is("samd")?"SaMD under MDR may be exempt from CRA — only where MDR achieves equivalent cybersecurity protection (Art. 2(2)). Verify applicability.":is("embedded")?"Art. 2(2) may exempt MDR devices with equivalent cybersecurity. Verify firmware vs software boundaries.":"Components under MDR vs CRA must be mapped independently for hybrid medical systems.",
+          iot: "Consumer IoT often falls under Class I. Check Annex III for critical categories (smart meters, etc.).",
+          industrial: "ICS/SCADA may be Class II critical (Annex III). Plan for Notified Body assessment if applicable.",
+          automotive: "Automotive systems may already be covered by UNECE R155. CRA adds market surveillance layer.",
+          financial: "Payment systems and authentication may be Class II. Budget for third-party conformity assessment.",
+        }
+      ),
       subs:[{id:"e3_s1",text:"Product classified: default, important, or critical"},{id:"e3_s2",text:"Conformity route identified (internal or notified body)"},{id:"e3_s3",text:"Sector-specific exemptions assessed"},{id:"e3_s4",text:"EU DoC per Annex V begun or planned"},{id:"e3_s5",text:"CE marking process understood"},{id:"e3_s6",text:"Documentation retained 10 years per Annex VIII"},{id:"e3_s7",text:"CEN/CENELEC/ETSI harmonised standards tracked"},
         ...(is("hybrid")?[{id:"e3_s8",text:"Each component's regulatory path independently mapped"}]:[])]},
   ];
@@ -229,7 +244,7 @@ function sLabel(p){return p>=75?"Strong":p>=50?"Developing":p>=25?"Initial":"Cri
    UI PRIMITIVES
    ═══════════════════════════════════════════════════════ */
 function Pill({children,color=C.dim,filled}){
-  return <span style={{display:"inline-block",padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:600,fontFamily:fm,lineHeight:"16px",
+  return <span style={{display:"inline-block",padding:"3px 10px",borderRadius:20,fontSize:12,fontWeight:600,fontFamily:fm,lineHeight:"18px",
     color:filled?C.surface:color,background:filled?color:`${color}0c`,border:`1px solid ${filled?"transparent":`${color}20`}`,transition:"all .2s"}}>{children}</span>;
 }
 
@@ -252,7 +267,7 @@ function Ring({pct,size=130}){
     </svg>
     <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
       <span style={{fontSize:size*.24,fontWeight:700,color:col,fontFamily:fm}}>{pct}</span>
-      <span style={{fontSize:10,color:C.dim,fontWeight:500,marginTop:-2}}>overall %</span>
+      <span style={{fontSize:12,color:C.dim,fontWeight:500,marginTop:-2}}>overall %</span>
     </div>
   </div>;
 }
@@ -267,7 +282,7 @@ function Card({children,style:extra,...props}){
     transform:hov?"translateY(-1px)":"none",...extra}} {...props}>{children}</div>;
 }
 
-function Label({children}){ return <div style={{fontSize:11,fontWeight:600,color:C.dim,textTransform:"uppercase",letterSpacing:".05em",marginBottom:8}}>{children}</div>; }
+function Label({children}){ return <div style={{fontSize:13,fontWeight:600,color:C.dim,textTransform:"uppercase",letterSpacing:".05em",marginBottom:8}}>{children}</div>; }
 
 /* Animated enter wrapper */
 function Appear({children,delay=0,style:extra}){
@@ -548,19 +563,20 @@ export default function App(){
   /* Rating scale */
   function Scale({value,onChange}){
     const [bounce,setBounce]=useState(null);
-    return <div style={{display:"flex",gap:4}}>
+    return <div style={{display:"flex",gap:6}}>
       {LEVELS.map(lv=>{
         const on=value===lv.v;
         return <button key={lv.v} onClick={()=>{setBounce(lv.v);onChange(lv.v);setTimeout(()=>setBounce(null),300)}} style={{
-          fontFamily:ff,flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3,
-          padding:"8px 2px",borderRadius:8,border:`1.5px solid ${on?lv.c:C.soft}`,cursor:"pointer",
+          fontFamily:ff,flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4,
+          padding:"clamp(10px, 2vw, 12px) 4px",borderRadius:8,border:`1.5px solid ${on?lv.c:C.soft}`,cursor:"pointer",
           background:on?lv.bg:C.surface,color:on?lv.c:C.mute,
           transition:"all .15s ease",
           transform:bounce===lv.v?"scale(1.06)":"scale(1)",
+          minHeight:"44px",
         }}>
-          <span style={{width:8,height:8,borderRadius:4,background:on?lv.c:C.soft,transition:"all .15s",
+          <span style={{width:10,height:10,borderRadius:5,background:on?lv.c:C.soft,transition:"all .15s",
             boxShadow:on?`0 0 0 3px ${lv.c}20`:"none"}}/>
-          <span style={{fontSize:10,fontWeight:600}}>{lv.l}</span>
+          <span style={{fontSize:12,fontWeight:600}}>{lv.l}</span>
         </button>;
       })}
     </div>;
@@ -570,53 +586,53 @@ export default function App(){
   if(step==="landing") return (
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:ff}}>
       <style>{cssOnce}</style>
-      <div style={{maxWidth:820,margin:"0 auto",padding:"48px 28px"}}>
-        <Appear><div style={{display:"flex",alignItems:"center",gap:8,marginBottom:40}}>
-          <span style={{fontSize:20,fontWeight:800,color:C.primary,fontFamily:ff}}>Complira</span>
+      <div style={{maxWidth:820,margin:"0 auto",padding:"clamp(24px, 5vw, 48px) clamp(16px, 4vw, 28px)"}}>
+        <Appear><div style={{display:"flex",alignItems:"center",gap:8,marginBottom:"clamp(24px, 5vw, 40px)"}}>
+          <span style={{fontSize:"clamp(22px, 4vw, 24px)",fontWeight:800,color:C.primary,fontFamily:ff}}>Complira</span>
         </div></Appear>
 
         <Appear delay={.05}>
           <Pill color={C.dim}>EU Regulation 2024/2847</Pill>
-          <h1 style={{fontSize:34,fontWeight:800,color:C.ink,lineHeight:1.15,margin:"14px 0 12px",letterSpacing:"-.03em"}}>
+          <h1 style={{fontSize:"clamp(28px, 6vw, 38px)",fontWeight:800,color:C.ink,lineHeight:1.15,margin:"14px 0 12px",letterSpacing:"-.03em"}}>
             Cyber Resilience Act<br/>Readiness Assessment
           </h1>
-          <p style={{fontSize:15,color:C.sub,maxWidth:520,lineHeight:1.7,marginBottom:32}}>
+          <p style={{fontSize:"clamp(15px, 3vw, 17px)",color:C.sub,maxWidth:520,lineHeight:1.7,marginBottom:32}}>
             Assess your digital product's compliance with the EU CRA across all sectors. Sector-specific guidance for healthcare, IoT, industrial, automotive, and financial technology. Each question maps to specific CRA articles and Annex I clauses.
           </p>
         </Appear>
 
         <Appear delay={.1}>
           <Label>Select your sector</Label>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:24}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(220px, 1fr))",gap:8,marginBottom:24}}>
             {SECTORS.map(s=>{const on=sector===s.id;
               return <button key={s.id} onClick={()=>setSector(s.id)} style={{
-                fontFamily:ff,textAlign:"left",cursor:"pointer",padding:"14px 16px",borderRadius:10,
+                fontFamily:ff,textAlign:"left",cursor:"pointer",padding:"16px 18px",borderRadius:10,
                 border:`1.5px solid ${on?s.color:C.border}`,background:on?`${s.color}08`:C.surface,
                 transition:"all .15s ease",boxShadow:on?`0 0 0 3px ${s.color}15`:"none",
               }}>
                 <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
-                  <span style={{fontSize:16,color:on?s.color:C.ghost}}>{s.icon}</span>
-                  <span style={{fontSize:13,fontWeight:600,color:on?s.color:C.ink,lineHeight:1.2}}>{s.label}</span>
+                  <span style={{fontSize:18,color:on?s.color:C.ghost}}>{s.icon}</span>
+                  <span style={{fontSize:15,fontWeight:600,color:on?s.color:C.ink,lineHeight:1.2}}>{s.label}</span>
                 </div>
-                <div style={{fontSize:10.5,color:C.dim,lineHeight:1.4,paddingLeft:24}}>{s.desc}</div>
+                <div style={{fontSize:13,color:C.dim,lineHeight:1.4,paddingLeft:26}}>{s.desc}</div>
               </button>})}
           </div>
         </Appear>
 
         {sector && <Appear delay={.15} key={sector}>
           <Label>Select your product architecture</Label>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:32}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(240px, 1fr))",gap:8,marginBottom:32}}>
             {PTYPES.map(p=>{const on=pt===p.id;const sectorObj=SECTORS.find(x=>x.id===sector);
               return <button key={p.id} onClick={()=>setPt(p.id)} style={{
-                fontFamily:ff,textAlign:"left",cursor:"pointer",padding:"16px 18px",borderRadius:10,
+                fontFamily:ff,textAlign:"left",cursor:"pointer",padding:"18px 20px",borderRadius:10,
                 border:`1.5px solid ${on?sectorObj.color:C.border}`,background:on?`${sectorObj.color}08`:C.surface,
                 transition:"all .15s ease",boxShadow:on?`0 0 0 3px ${sectorObj.color}15`:"none",
               }}>
                 <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
-                  <span style={{fontSize:16,color:on?sectorObj.color:C.ghost}}>{p.icon}</span>
-                  <span style={{fontSize:14,fontWeight:600,color:on?sectorObj.color:C.ink}}>{p.label}</span>
+                  <span style={{fontSize:18,color:on?sectorObj.color:C.ghost}}>{p.icon}</span>
+                  <span style={{fontSize:16,fontWeight:600,color:on?sectorObj.color:C.ink}}>{p.label}</span>
                 </div>
-                <div style={{fontSize:11.5,color:C.dim,lineHeight:1.5,paddingLeft:24}}>{p.desc}</div>
+                <div style={{fontSize:13,color:C.dim,lineHeight:1.5,paddingLeft:26}}>{p.desc}</div>
               </button>})}
           </div>
         </Appear>}
@@ -814,15 +830,15 @@ export default function App(){
 
     return <div style={{minHeight:"100vh",background:C.bg,fontFamily:ff}}>
       <style>{cssOnce}</style>
-      <div style={{maxWidth:820,margin:"0 auto",padding:"40px 28px"}}>
+      <div style={{maxWidth:820,margin:"0 auto",padding:"clamp(24px, 4vw, 40px) clamp(16px, 4vw, 28px)"}}>
         {/* Header bar */}
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-          <div style={{display:"flex",gap:5,alignItems:"center"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6,flexWrap:"wrap",gap:8}}>
+          <div style={{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap"}}>
             <Pill color={sec.accent} filled>{q.section}</Pill>
-            <span style={{fontSize:12,fontWeight:500,color:sec.accent}}>{sec.label}</span>
+            <span style={{fontSize:14,fontWeight:500,color:sec.accent}}>{sec.label}</span>
             {productClass&&<Pill color={productClass==="II"?C.warn:C.primary}>Class {productClass}</Pill>}
           </div>
-          <span style={{fontSize:12,color:C.dim,fontFamily:fm,fontWeight:500}}>{qi+1} of {qs.length}</span>
+          <span style={{fontSize:14,color:C.dim,fontFamily:fm,fontWeight:500}}>{qi+1} of {qs.length}</span>
         </div>
 
         {/* Progress bar */}
@@ -838,23 +854,23 @@ export default function App(){
               <Pill color={sec.accent}>{q.ref}</Pill>
               {q.sectionTitle && <Pill color={C.dim}>{q.sectionTitle}</Pill>}
             </div>
-            <h2 style={{fontSize:20,fontWeight:700,color:C.ink,margin:"0 0 6px",letterSpacing:"-.015em"}}>{q.title}</h2>
-            <p style={{fontSize:13.5,color:C.sub,lineHeight:1.7,marginBottom:14}}>{q.body}</p>
+            <h2 style={{fontSize:"clamp(20px, 4vw, 22px)",fontWeight:700,color:C.ink,margin:"0 0 8px",letterSpacing:"-.015em"}}>{q.title}</h2>
+            <p style={{fontSize:"clamp(15px, 3vw, 16px)",color:C.sub,lineHeight:1.7,marginBottom:16}}>{q.body}</p>
 
             {/* Context */}
-            <div style={{background:sec.soft,borderRadius:8,padding:"12px 14px",marginBottom:20,borderLeft:`3px solid ${sec.accent}`}}>
-              <div style={{display:"flex",gap:6,marginBottom:4}}>
+            <div style={{background:sec.soft,borderRadius:8,padding:"14px 16px",marginBottom:20,borderLeft:`3px solid ${sec.accent}`}}>
+              <div style={{display:"flex",gap:6,marginBottom:6,flexWrap:"wrap"}}>
                 <Pill color={SECTORS.find(s=>s.id===sector)?.color||sec.accent}>{SECTORS.find(s=>s.id===sector)?.label}</Pill>
                 <Pill color={sec.accent}>{PTYPES.find(p=>p.id===pt)?.label}</Pill>
               </div>
-              <div style={{fontSize:12,color:C.sub,lineHeight:1.65}}>{q.ctx}</div>
+              <div style={{fontSize:14,color:C.sub,lineHeight:1.7}}>{q.ctx}</div>
             </div>
 
             {/* Class II specific guidance */}
             {productClass==="II" && (q.id==="a1"||q.id==="a2"||q.id==="e1"||q.id==="e3") && (
-              <div style={{marginBottom:20,padding:"12px 14px",background:C.warnSoft,borderRadius:8,borderLeft:`3px solid ${C.warn}`}}>
-                <div style={{fontSize:11,fontWeight:600,color:C.warn,marginBottom:4}}>⚠️ Class II — Critical Product (Annex III)</div>
-                <div style={{fontSize:11,color:C.sub,lineHeight:1.6}}>
+              <div style={{marginBottom:20,padding:"14px 16px",background:C.warnSoft,borderRadius:8,borderLeft:`3px solid ${C.warn}`}}>
+                <div style={{fontSize:13,fontWeight:600,color:C.warn,marginBottom:6}}>⚠️ Class II — Critical Product (Annex III)</div>
+                <div style={{fontSize:13,color:C.sub,lineHeight:1.7}}>
                   {q.id==="a1"&&"Notified Body will rigorously audit risk assessment methodology, completeness, and traceability. Document all residual risks and mitigation measures."}
                   {q.id==="a2"&&"Threat modeling must cover both IT and product-specific attack vectors. Notified Body expects STRIDE/PASTA or equivalent formal methodology with documented assumptions."}
                   {q.id==="e1"&&"Technical documentation (Annex VII) will be comprehensively audited by Notified Body. Gaps or inconsistencies will delay conformity assessment. Target 90%+ maturity."}
@@ -873,19 +889,19 @@ export default function App(){
                 <button onClick={()=>setShowSubs(p=>({...p,[q.id]:!open}))} style={{
                   fontFamily:ff,background:"none",border:"none",padding:0,display:"flex",alignItems:"center",gap:8,width:"100%",cursor:"pointer",marginBottom:open?12:0,
                 }}>
-                  <span style={{fontSize:12,fontWeight:600,color:C.ink}}>Drill-down criteria</span>
+                  <span style={{fontSize:14,fontWeight:600,color:C.ink}}>Drill-down criteria</span>
                   <Pill color={subsDone===q.subs.length?C.ok:C.dim}>{subsDone}/{q.subs.length}</Pill>
                   <div style={{flex:1,maxWidth:80}}><Bar pct={(subsDone/q.subs.length)*100}/></div>
-                  <span style={{fontSize:11,color:C.mute,transform:open?"rotate(180deg)":"none",transition:"transform .2s"}}>▾</span>
+                  <span style={{fontSize:13,color:C.mute,transform:open?"rotate(180deg)":"none",transition:"transform .2s"}}>▾</span>
                 </button>
                 {open && <div style={{display:"flex",flexDirection:"column",gap:6}}>
                   {q.subs.map((sub,idx)=>{
                     const sv=subAns[sub.id];const lev=LEVELS.find(l=>l.v===sv);
-                    return <div key={sub.id} style={{background:C.raised,borderRadius:8,padding:"12px 14px",
+                    return <div key={sub.id} style={{background:C.raised,borderRadius:8,padding:"14px 16px",
                       border:`1.5px solid ${sv!==undefined?`${lev?.c}25`:C.soft}`,
                       transition:"border-color .2s",animation:`fadeUp .25s ease ${idx*.03}s both`}}>
-                      <div style={{fontSize:12,color:C.ink,lineHeight:1.65,marginBottom:8}}>
-                        <span style={{color:sec.accent,fontWeight:700,fontFamily:fm,marginRight:6,fontSize:10}}>{q.id.toUpperCase()}.{idx+1}</span>
+                      <div style={{fontSize:14,color:C.ink,lineHeight:1.7,marginBottom:10}}>
+                        <span style={{color:sec.accent,fontWeight:700,fontFamily:fm,marginRight:6,fontSize:11}}>{q.id.toUpperCase()}.{idx+1}</span>
                         {sub.text}
                       </div>
                       <Scale value={sv} onChange={v=>setSubAns(p=>({...p,[sub.id]:v}))}/>
