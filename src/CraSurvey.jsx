@@ -311,6 +311,7 @@ export default function App(){
   const resultsRef = useRef(null); // Ref for PDF generation
   const [productInScope,setProductInScope]=useState(null); // Art. 3 - Product scope
   const [productClass,setProductClass]=useState(null); // Art. 7 - Classification (I or II)
+  const [criticalFunctions,setCriticalFunctions]=useState([]); // Annex III critical functions
 
   const qs=useMemo(()=>sector&&pt?buildQuestions(sector,pt):[],[sector,pt]);
   const nav=(fn,d=1)=>{setDir(d);setKey(k=>k+1);fn()};
@@ -329,6 +330,7 @@ export default function App(){
           setPt(data.config.productType);
           setProductInScope(data.config.productInScope !== undefined ? data.config.productInScope : null);
           setProductClass(data.config.productClass || null);
+          setCriticalFunctions(data.config.criticalFunctions || []);
           setMainAns(data.answers.mainAns);
           setSubAns(data.answers.subAns);
           setNotes(data.answers.notes || {});
@@ -390,6 +392,7 @@ export default function App(){
               productType: pt,
               productInScope,
               productClass,
+              criticalFunctions,
             },
             answers: {
               mainAns,
@@ -667,7 +670,12 @@ export default function App(){
   /* ════ SCREENING ════ */
   if(step==="screening") {
     const sectorObj = SECTORS.find(s=>s.id===sector);
-    const canProceed = productInScope !== null && (productInScope === false || productClass !== null);
+    // Auto-set Class I if in scope but no critical functions selected
+    const effectiveClass = productInScope === true ? (criticalFunctions.length > 0 ? "II" : "I") : null;
+    if(productInScope === true && productClass === null && effectiveClass) {
+      setProductClass(effectiveClass);
+    }
+    const canProceed = productInScope !== null;
 
     return (
       <div style={{minHeight:"100vh",background:C.bg,fontFamily:ff}}>
@@ -736,50 +744,76 @@ export default function App(){
             <Appear delay={.15}>
               <Card style={{marginBottom:32}}>
                 <div style={{display:"flex",gap:6,marginBottom:10}}>
-                  <Pill color={C.primary}>Art. 7</Pill>
+                  <Pill color={C.primary}>Art. 7 & Annex III</Pill>
                   <Pill color={C.dim}>Classification</Pill>
                 </div>
                 <h2 style={{fontSize:18,fontWeight:700,color:C.ink,margin:"0 0 8px",letterSpacing:"-.015em"}}>
-                  Is your product Critical (Class II)?
+                  Does your product provide any of these critical security functions?
                 </h2>
                 <p style={{fontSize:13,color:C.sub,lineHeight:1.7,marginBottom:16}}>
-                  Critical products listed in Annex III require third-party Notified Body conformity assessment. All other products with digital elements are Class I (Important).
+                  Products with these functions are Class II (Critical) under Annex III and require third-party Notified Body assessment. All other products are Class I (Important).
                 </p>
 
-                <Label>Select classification</Label>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                <Label>Select all that apply (leave unchecked if none apply)</Label>
+                <div style={{display:"grid",gridTemplateColumns:"1fr",gap:10}}>
                   {[
-                    {v:"I",label:"Class I — Important",desc:"Standard conformity assessment via manufacturer's self-declaration (Art. 28)"},
-                    {v:"II",label:"Class II — Critical (Annex III)",desc:"Identity management systems, browsers, password managers, VPNs, firewalls, microprocessors, ICS/SCADA, smart meters. Requires Notified Body (Art. 30)"}
-                  ].map(opt=>{
-                    const selected = productClass === opt.v;
+                    {id:"iam",label:"Identity & Access Management",desc:"User authentication, authorization, identity federation, SSO, directory services"},
+                    {id:"browser",label:"Web Browser",desc:"Software for accessing and rendering web content (standalone or embedded browser engine)"},
+                    {id:"password",label:"Password Manager",desc:"Software for storing, generating, or managing user credentials"},
+                    {id:"vpn",label:"VPN (Virtual Private Network)",desc:"Secure tunneling, remote access, or encrypted networking solution"},
+                    {id:"firewall",label:"Firewall / Network Security",desc:"Packet filtering, intrusion prevention, network access control"},
+                    {id:"crypto",label:"Cryptographic Hardware",desc:"Smart cards, TPMs, HSMs, secure elements, or microprocessors with security features"},
+                    {id:"ics",label:"ICS/SCADA",desc:"Industrial control systems, SCADA, or critical infrastructure automation"},
+                    {id:"smartmeter",label:"Smart Meter",desc:"Utility metering with remote reading or control capabilities"}
+                  ].map(func=>{
+                    const selected = criticalFunctions.includes(func.id);
                     return (
-                      <button key={opt.v} onClick={()=>setProductClass(opt.v)} style={{
-                        fontFamily:ff,textAlign:"left",cursor:"pointer",padding:"16px 18px",borderRadius:10,
-                        border:`1.5px solid ${selected?sectorObj.color:C.border}`,
-                        background:selected?`${sectorObj.color}08`:C.surface,
+                      <button key={func.id} onClick={()=>{
+                        if(selected){
+                          const newFuncs = criticalFunctions.filter(f=>f!==func.id);
+                          setCriticalFunctions(newFuncs);
+                          setProductClass(newFuncs.length>0?"II":"I");
+                        }else{
+                          const newFuncs = [...criticalFunctions,func.id];
+                          setCriticalFunctions(newFuncs);
+                          setProductClass("II");
+                        }
+                      }} style={{
+                        fontFamily:ff,textAlign:"left",cursor:"pointer",padding:"14px 16px",borderRadius:10,
+                        border:`1.5px solid ${selected?C.warn:C.border}`,
+                        background:selected?C.warnSoft:C.surface,
                         transition:"all .15s ease",
-                        boxShadow:selected?`0 0 0 3px ${sectorObj.color}15`:"none",
+                        boxShadow:selected?`0 0 0 3px ${C.warn}15`:"none",
+                        display:"flex",gap:12,alignItems:"flex-start"
                       }}>
-                        <div style={{fontSize:14,fontWeight:600,color:selected?sectorObj.color:C.ink,marginBottom:6}}>
-                          {opt.label}
+                        <div style={{marginTop:2,width:18,height:18,borderRadius:4,border:`2px solid ${selected?C.warn:C.border}`,
+                          background:selected?C.warn:C.surface,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                          {selected&&<span style={{color:"#fff",fontSize:12,fontWeight:700}}>✓</span>}
                         </div>
-                        <div style={{fontSize:11.5,color:C.sub,lineHeight:1.5}}>
-                          {opt.desc}
+                        <div style={{flex:1}}>
+                          <div style={{fontSize:14,fontWeight:600,color:selected?C.warn:C.ink,marginBottom:4}}>
+                            {func.label}
+                          </div>
+                          <div style={{fontSize:12,color:C.sub,lineHeight:1.5}}>
+                            {func.desc}
+                          </div>
                         </div>
                       </button>
                     );
                   })}
                 </div>
 
-                {productClass === "II" && (
-                  <div style={{marginTop:16,padding:"12px 14px",background:C.warnSoft,borderRadius:8,borderLeft:`3px solid ${C.warn}`}}>
-                    <div style={{fontSize:12,fontWeight:600,color:C.warn,marginBottom:4}}>⚠️ Notified Body Required</div>
-                    <div style={{fontSize:11.5,color:C.sub,lineHeight:1.6}}>
-                      Critical products require third-party conformity assessment by an EU-notified body before CE marking (Art. 30). Additional technical documentation and testing requirements apply.
-                    </div>
+                {/* Auto-determined classification result */}
+                <div style={{marginTop:20,padding:"14px 16px",background:criticalFunctions.length>0?C.warnSoft:C.primarySoft,borderRadius:8,borderLeft:`3px solid ${criticalFunctions.length>0?C.warn:C.primary}`}}>
+                  <div style={{fontSize:13,fontWeight:600,color:criticalFunctions.length>0?C.warn:C.primary,marginBottom:6}}>
+                    {criticalFunctions.length>0?"⚠️ Class II — Critical Product (Annex III)":"✓ Class I — Important Product"}
                   </div>
-                )}
+                  <div style={{fontSize:12,color:C.sub,lineHeight:1.7}}>
+                    {criticalFunctions.length>0
+                      ?"Your product requires third-party Notified Body conformity assessment (Art. 30) before CE marking. Budget 6-12 months for this process. Additional technical documentation and security testing requirements apply."
+                      :"Your product uses standard conformity assessment via manufacturer's self-declaration (Art. 28). No third-party audit required, but you must maintain comprehensive technical documentation (Annex VII)."}
+                  </div>
+                </div>
               </Card>
             </Appear>
           )}
