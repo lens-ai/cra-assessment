@@ -276,10 +276,10 @@ function Ring({pct,size=130}){
 function Card({children,style:extra,...props}){
   const [hov,setHov]=useState(false);
   return <div onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)} style={{
-    background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,padding:"20px 24px",
+    background:C.surface,border:`2px solid ${C.border}`,borderRadius:12,padding:"24px 28px",
     transition:"all .2s ease",
-    boxShadow:hov?"0 4px 20px rgba(0,0,0,.06)":"0 1px 3px rgba(0,0,0,.03)",
-    transform:hov?"translateY(-1px)":"none",...extra}} {...props}>{children}</div>;
+    boxShadow:hov?"0 8px 24px rgba(0,0,0,.12)":"0 2px 8px rgba(0,0,0,.06)",
+    transform:hov?"translateY(-2px)":"none",...extra}} {...props}>{children}</div>;
 }
 
 function Label({children}){ return <div style={{fontSize:13,fontWeight:600,color:C.dim,textTransform:"uppercase",letterSpacing:".05em",marginBottom:8}}>{children}</div>; }
@@ -654,14 +654,14 @@ export default function App(){
           </Card>
         </Appear>
 
-        <Appear delay={.2}><div style={{display:"flex",alignItems:"center",gap:12}}>
+        <Appear delay={.2}><div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
           <button onClick={()=>nav(()=>setStep("screening"))} disabled={!sector||!pt} style={{
-            fontFamily:ff,fontSize:14,fontWeight:600,border:"none",borderRadius:8,cursor:(sector&&pt)?"pointer":"default",
-            background:(sector&&pt)?(SECTORS.find(s=>s.id===sector)?.color||C.primary):C.ghost,color:"#fff",padding:"12px 28px",
+            fontFamily:ff,fontSize:16,fontWeight:700,border:"none",borderRadius:10,cursor:(sector&&pt)?"pointer":"default",
+            background:(sector&&pt)?(SECTORS.find(s=>s.id===sector)?.color||C.primary):C.ghost,color:"#fff",padding:"14px 32px",
             transition:"all .2s",transform:(sector&&pt)?"scale(1)":"scale(.98)",
-            boxShadow:(sector&&pt)?`0 2px 12px ${(SECTORS.find(s=>s.id===sector)?.color||C.primary)}40`:"none",
-          }}>Begin assessment</button>
-          <span style={{fontSize:12,color:C.mute}}>22 questions · ~130 criteria · ~20 min</span>
+            boxShadow:(sector&&pt)?`0 4px 16px ${(SECTORS.find(s=>s.id===sector)?.color||C.primary)}50`:"none",
+          }}>Begin Assessment →</button>
+          <span style={{fontSize:13,color:C.sub,fontWeight:500}}>22 questions · ~130 criteria · ~20 min</span>
         </div></Appear>
       </div>
     </div>
@@ -821,10 +821,11 @@ export default function App(){
 
           {/* Navigation */}
           <Appear delay={.2}>
-            <div style={{display:"flex",alignItems:"center",gap:12}}>
+            <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
               <button onClick={()=>nav(()=>setStep("landing"),-1)} style={{
-                fontFamily:ff,fontSize:13,fontWeight:600,border:`1.5px solid ${C.border}`,borderRadius:8,
-                cursor:"pointer",background:C.surface,color:C.sub,padding:"10px 20px",transition:"all .2s"
+                fontFamily:ff,fontSize:14,fontWeight:600,border:`2px solid ${C.border}`,borderRadius:10,
+                cursor:"pointer",background:C.surface,color:C.ink,padding:"12px 24px",transition:"all .2s",
+                boxShadow:"0 2px 6px rgba(0,0,0,.08)"
               }}>
                 ← Back
               </button>
@@ -839,15 +840,15 @@ export default function App(){
               ) : (
                 <>
                   <button onClick={()=>nav(()=>{setQi(0);setStep("survey")})} disabled={!canProceed} style={{
-                    fontFamily:ff,fontSize:14,fontWeight:600,border:"none",borderRadius:8,
+                    fontFamily:ff,fontSize:15,fontWeight:700,border:"none",borderRadius:10,
                     cursor:canProceed?"pointer":"default",
-                    background:canProceed?sectorObj.color:C.ghost,color:"#fff",padding:"12px 28px",
+                    background:canProceed?sectorObj.color:C.ghost,color:"#fff",padding:"14px 32px",
                     transition:"all .2s",transform:canProceed?"scale(1)":"scale(.98)",
-                    boxShadow:canProceed?`0 2px 12px ${sectorObj.color}40`:"none",
+                    boxShadow:canProceed?`0 4px 16px ${sectorObj.color}50`:"none",
                   }}>
-                    Continue to assessment →
+                    Continue to Assessment →
                   </button>
-                  <span style={{fontSize:12,color:C.mute}}>22 questions · ~130 criteria</span>
+                  <span style={{fontSize:13,color:C.sub,fontWeight:500}}>22 questions · ~130 criteria</span>
                 </>
               )}
             </div>
@@ -893,12 +894,12 @@ export default function App(){
             <p style={{fontSize:"clamp(15px, 3vw, 16px)",color:C.sub,lineHeight:1.7,marginBottom:16}}>{q.body}</p>
 
             {/* Context */}
-            <div style={{background:sec.soft,borderRadius:8,padding:"14px 16px",marginBottom:20,borderLeft:`3px solid ${sec.accent}`}}>
-              <div style={{display:"flex",gap:6,marginBottom:6,flexWrap:"wrap"}}>
-                <Pill color={SECTORS.find(s=>s.id===sector)?.color||sec.accent}>{SECTORS.find(s=>s.id===sector)?.label}</Pill>
+            <div style={{background:sec.soft,borderRadius:10,padding:"16px 18px",marginBottom:20,borderLeft:`4px solid ${sec.accent}`,border:`2px solid ${sec.accent}20`}}>
+              <div style={{display:"flex",gap:6,marginBottom:8,flexWrap:"wrap"}}>
+                <Pill color={SECTORS.find(s=>s.id===sector)?.color||sec.accent} filled>{SECTORS.find(s=>s.id===sector)?.label}</Pill>
                 <Pill color={sec.accent}>{PTYPES.find(p=>p.id===pt)?.label}</Pill>
               </div>
-              <div style={{fontSize:14,color:C.sub,lineHeight:1.7}}>{q.ctx}</div>
+              <div style={{fontSize:14,color:C.ink,lineHeight:1.8,fontWeight:500}}>{q.ctx}</div>
             </div>
 
             {/* Class II specific guidance */}
@@ -958,16 +959,16 @@ export default function App(){
           </Card>
 
           {/* Nav */}
-          <div style={{display:"flex",justifyContent:"space-between",marginTop:14,gap:6}}>
-            <button style={{fontFamily:ff,fontSize:13,fontWeight:600,background:C.surface,color:C.sub,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 20px",cursor:"pointer",opacity:qi===0?.4:1,transition:"all .15s"}}
-              disabled={qi===0} onClick={()=>nav(()=>setQi(p=>p-1),-1)}>Back</button>
-            <div style={{display:"flex",gap:5}}>
-              {ma===undefined && qi<qs.length-1 && <button style={{fontFamily:ff,fontSize:13,fontWeight:500,background:C.surface,color:C.mute,border:`1px solid ${C.soft}`,borderRadius:8,padding:"10px 16px",cursor:"pointer",transition:"all .15s"}}
-                onClick={()=>nav(()=>setQi(p=>p+1))}>Skip</button>}
-              <button style={{fontFamily:ff,fontSize:13,fontWeight:600,background:C.primary,color:"#fff",border:"none",borderRadius:8,padding:"10px 22px",cursor:ma!==undefined?"pointer":"default",opacity:ma!==undefined?1:.4,transition:"all .15s",boxShadow:ma!==undefined?"0 2px 8px rgba(61,90,241,.2)":"none"}}
+          <div style={{display:"flex",justifyContent:"space-between",marginTop:20,gap:8,flexWrap:"wrap"}}>
+            <button style={{fontFamily:ff,fontSize:14,fontWeight:600,background:C.surface,color:C.ink,border:`2px solid ${C.border}`,borderRadius:10,padding:"12px 24px",cursor:"pointer",opacity:qi===0?.5:1,transition:"all .2s",boxShadow:"0 2px 6px rgba(0,0,0,.08)"}}
+              disabled={qi===0} onClick={()=>nav(()=>setQi(p=>p-1),-1)}>← Back</button>
+            <div style={{display:"flex",gap:8}}>
+              {ma===undefined && qi<qs.length-1 && <button style={{fontFamily:ff,fontSize:14,fontWeight:600,background:C.surface,color:C.sub,border:`2px solid ${C.border}`,borderRadius:10,padding:"12px 20px",cursor:"pointer",transition:"all .2s",boxShadow:"0 2px 6px rgba(0,0,0,.08)"}}
+                onClick={()=>nav(()=>setQi(p=>p+1))}>Skip →</button>}
+              <button style={{fontFamily:ff,fontSize:15,fontWeight:700,background:ma!==undefined?C.primary:C.ghost,color:"#fff",border:"none",borderRadius:10,padding:"12px 28px",cursor:ma!==undefined?"pointer":"default",opacity:ma!==undefined?1:.6,transition:"all .2s",boxShadow:ma!==undefined?"0 4px 12px rgba(61,90,241,.3)":"none"}}
                 disabled={ma===undefined}
                 onClick={()=>nav(()=>qi===qs.length-1?setStep("capture"):setQi(p=>p+1))}>
-                {qi===qs.length-1?"View results":"Next"}</button>
+                {qi===qs.length-1?"View Results →":"Next →"}</button>
             </div>
           </div>
 
