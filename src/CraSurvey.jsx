@@ -62,7 +62,7 @@ const SECTORS = [
 ];
 
 const PTYPES = [
-  { id: "samd", label: "Pure Software (SaMD)", desc: "Standalone software application", icon: "◇" },
+  { id: "samd", label: "Pure Software", desc: "Standalone software application", icon: "◇" },
   { id: "embedded", label: "Embedded / Firmware", desc: "Hardware with embedded software", icon: "▣" },
   { id: "cloud", label: "Cloud / SaaS", desc: "Cloud-hosted platform or service", icon: "◎" },
   { id: "hybrid", label: "Multi-Component", desc: "Connected ecosystem with multiple components", icon: "⬡" },
@@ -958,7 +958,7 @@ export default function App(){
           <p style={{fontSize:14,color:C.sub,marginBottom:20}}>Enter your details for the full gap analysis with article-level recommendations.</p>
         </Appear>
         <Appear delay={.08}><Card>
-          {[{k:"name",l:"Full name",p:"Jane Smith",req:true},{k:"email",l:"Work email",p:"jane@example.com",req:true,t:"email"},{k:"company",l:"Company",p:"MedDevice Inc.",req:true},{k:"role",l:"Role",p:"VP Engineering, RA/QA"},{k:"device",l:"Product / device class",p:"e.g. Class II SaMD"}]
+          {[{k:"name",l:"Full name",p:"Jane Smith",req:true},{k:"email",l:"Work email",p:"jane@example.com",req:true,t:"email"},{k:"company",l:"Company",p:"Acme Tech Inc.",req:true},{k:"role",l:"Role",p:"VP Engineering, CISO"},{k:"device",l:"Product name",p:"e.g. Smart Thermostat, Payment Gateway"}]
             .map(f=><div key={f.k} style={{marginBottom:13}}>
               <label style={{display:"block",fontSize:11,fontWeight:600,color:C.sub,marginBottom:4}}>
                 {f.l}{f.req&&<span style={{color:C.err}}> *</span>}
