@@ -919,35 +919,71 @@ export default function App(){
             <Label>Overall maturity</Label>
             <Scale value={ma} onChange={v=>setMainAns(p=>({...p,[q.id]:v}))}/>
 
-            {/* Drill-down */}
+
+            {/* Two-step progress indicator */}
             {ma!==undefined && ma>0 && (
-              <div style={{marginTop:20,borderTop:`1px solid ${C.soft}`,paddingTop:16,animation:"fadeIn .3s ease"}}>
-                <button onClick={()=>setShowSubs(p=>({...p,[q.id]:!open}))} style={{
-                  fontFamily:ff,background:C.raised,border:`1.5px solid ${C.border}`,padding:"12px 16px",borderRadius:8,display:"flex",alignItems:"center",gap:10,width:"100%",cursor:"pointer",marginBottom:open?14:0,
-                  transition:"all .15s ease",
-                  boxShadow:"0 1px 3px rgba(0,0,0,.04)"
-                }}
-                onMouseEnter={(e)=>e.currentTarget.style.background=C.hover}
-                onMouseLeave={(e)=>e.currentTarget.style.background=C.raised}>
-                  <span style={{fontSize:14,fontWeight:600,color:C.ink}}>Drill-down criteria</span>
-                  <Pill color={subsDone===q.subs.length?C.ok:C.warn}>{subsDone}/{q.subs.length}</Pill>
-                  <div style={{flex:1,maxWidth:80}}><Bar pct={(subsDone/q.subs.length)*100}/></div>
-                  <span style={{fontSize:15,color:C.primary,fontWeight:700,transform:open?"rotate(180deg)":"none",transition:"transform .2s"}}>▾</span>
-                </button>
-                {open && <div style={{display:"flex",flexDirection:"column",gap:6}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginTop:16,padding:"10px 14px",borderRadius:10,background:C.raised,border:`1.5px solid ${C.soft}`}}>
+                <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+                  <div style={{width:22,height:22,borderRadius:"50%",background:C.ok,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff"}}>✓</div>
+                  <span style={{fontSize:12,fontWeight:600,color:C.ok}}>Overall rated</span>
+                </div>
+                <div style={{flex:1,height:2,borderRadius:1,background:subsDone===q.subs.length?C.ok:"#f59e0b",transition:"background .3s"}}/>
+                <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+                  <div style={{width:22,height:22,borderRadius:"50%",background:subsDone===q.subs.length?C.ok:"#f59e0b",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff",transition:"background .3s"}}>
+                    {subsDone===q.subs.length?"✓":"2"}
+                  </div>
+                  <span style={{fontSize:12,fontWeight:600,color:subsDone===q.subs.length?C.ok:"#b45309"}}>
+                    {subsDone===q.subs.length?`All ${q.subs.length} criteria done`:`${q.subs.length-subsDone} of ${q.subs.length} criteria left`}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Drill-down — always expanded, no hidden toggle */}
+            {ma!==undefined && ma>0 && (
+              <div style={{marginTop:14,animation:"fadeIn .3s ease"}}>
+                {/* Section header */}
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12,padding:"12px 16px",borderRadius:10,
+                  background:subsDone===q.subs.length?"#f0fdf4":"#fffbeb",
+                  border:`2px solid ${subsDone===q.subs.length?C.ok:"#f59e0b"}`}}>
+                  <div style={{width:26,height:26,borderRadius:"50%",background:subsDone===q.subs.length?C.ok:"#f59e0b",
+                    display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0,transition:"background .3s"}}>
+                    {subsDone===q.subs.length?"✓":"2"}
+                  </div>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:13,fontWeight:700,color:subsDone===q.subs.length?"#15803d":"#92400e"}}>
+                      {subsDone===q.subs.length?"All criteria rated — question complete!":"Rate each criterion for an accurate gap analysis"}
+                    </div>
+                    <div style={{fontSize:11,color:subsDone===q.subs.length?"#166534":"#a16207",marginTop:2}}>
+                      {subsDone===q.subs.length?"Your score for this question is final.":
+                        `Select a maturity level for each item below (${q.subs.length-subsDone} remaining)`}
+                    </div>
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:6}}>
+                    <div style={{width:64,height:6,borderRadius:3,background:C.soft,overflow:"hidden"}}>
+                      <div style={{height:"100%",borderRadius:3,background:subsDone===q.subs.length?C.ok:"#f59e0b",width:`${(subsDone/q.subs.length)*100}%`,transition:"width .3s"}}/>
+                    </div>
+                    <Pill color={subsDone===q.subs.length?C.ok:C.warn}>{subsDone}/{q.subs.length}</Pill>
+                  </div>
+                </div>
+                {/* Criteria list — always visible */}
+                <div style={{display:"flex",flexDirection:"column",gap:8}}>
                   {q.subs.map((sub,idx)=>{
                     const sv=subAns[sub.id];const lev=LEVELS.find(l=>l.v===sv);
-                    return <div key={sub.id} style={{background:C.raised,borderRadius:8,padding:"14px 16px",
-                      border:`1.5px solid ${sv!==undefined?`${lev?.c}25`:C.soft}`,
-                      transition:"border-color .2s",animation:`fadeUp .25s ease ${idx*.03}s both`}}>
-                      <div style={{fontSize:14,color:C.ink,lineHeight:1.7,marginBottom:10}}>
+                    const unanswered=sv===undefined;
+                    return <div key={sub.id} style={{background:C.raised,borderRadius:10,padding:"14px 16px",
+                      border:`2px solid ${sv!==undefined?`${lev?.c}40`:"#fcd34d"}`,
+                      transition:"border-color .2s",animation:`fadeUp .25s ease ${idx*.03}s both`,
+                      position:"relative"}}>
+                      {unanswered && <div style={{position:"absolute",top:10,right:12,fontSize:10,fontWeight:700,color:"#d97706",background:"#fef3c7",padding:"2px 6px",borderRadius:4}}>RATE THIS</div>}
+                      <div style={{fontSize:14,color:C.ink,lineHeight:1.7,marginBottom:10,paddingRight:unanswered?70:0}}>
                         <span style={{color:sec.accent,fontWeight:700,fontFamily:fm,marginRight:6,fontSize:11}}>{q.id.toUpperCase()}.{idx+1}</span>
                         {sub.text}
                       </div>
                       <Scale value={sv} onChange={v=>setSubAns(p=>({...p,[sub.id]:v}))}/>
                     </div>;
                   })}
-                </div>}
+                </div>
               </div>
             )}
 
@@ -959,7 +995,14 @@ export default function App(){
           </Card>
 
           {/* Nav */}
-          <div style={{display:"flex",justifyContent:"space-between",marginTop:20,gap:8,flexWrap:"wrap"}}>
+          {ma!==undefined && ma>0 && subsDone<q.subs.length && (
+            <div style={{display:"flex",alignItems:"center",gap:8,marginTop:20,padding:"10px 14px",borderRadius:10,background:"#fffbeb",border:"1.5px solid #f59e0b"}}>
+              <span style={{fontSize:15}}>⚠</span>
+              <span style={{fontSize:13,fontWeight:600,color:"#92400e",flex:1}}>{q.subs.length-subsDone} criteria still unrated — scroll up to complete them for a precise score</span>
+              <button onClick={()=>window.scrollTo({top:0,behavior:"smooth"})} style={{fontFamily:ff,fontSize:12,fontWeight:600,background:"#f59e0b",color:"#fff",border:"none",borderRadius:7,padding:"6px 12px",cursor:"pointer"}}>↑ Complete</button>
+            </div>
+          )}
+          <div style={{display:"flex",justifyContent:"space-between",marginTop:12,gap:8,flexWrap:"wrap"}}>
             <button style={{fontFamily:ff,fontSize:14,fontWeight:600,background:C.surface,color:C.ink,border:`2px solid ${C.border}`,borderRadius:10,padding:"12px 24px",cursor:"pointer",opacity:qi===0?.5:1,transition:"all .2s",boxShadow:"0 2px 6px rgba(0,0,0,.08)"}}
               disabled={qi===0} onClick={()=>nav(()=>setQi(p=>p-1),-1)}>← Back</button>
             <div style={{display:"flex",gap:8}}>
